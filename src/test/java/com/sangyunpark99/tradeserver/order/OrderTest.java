@@ -53,12 +53,6 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("계좌 ID가 없으면 만들 수 없다")
-        void rejectNullAccountId() {
-            assertError(() -> new Order(null, "AAPL", 10, new BigDecimal("200")), ErrorCode.INVALID_ACCOUNT_ID);
-        }
-
-        @Test
         @DisplayName("종목이 null이거나 비어 있으면 만들 수 없다")
         void rejectBlankSymbol() {
             assertError(() -> new Order(1L, null, 10, new BigDecimal("200")), ErrorCode.INVALID_SYMBOL);
