@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ErrorCode {
 
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청 값이 올바르지 않습니다."),
+
     INVALID_BALANCE(HttpStatus.BAD_REQUEST, "현금 잔고는 0 이상이어야 합니다."),
     INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "금액은 0보다 커야 합니다."),
     INSUFFICIENT_AVAILABLE_BALANCE(HttpStatus.CONFLICT, "주문 가능 금액이 부족합니다."),
@@ -24,7 +26,9 @@ public enum ErrorCode {
     NOT_FOUND_ORDER(HttpStatus.NOT_FOUND, "주문이 존재하지 않습니다."),
 
     FILL_ORDER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "체결 통보된 주문이 존재하지 않습니다."),
-    FILL_ACCOUNT_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "체결된 주문의 계좌가 존재하지 않습니다.");
+    FILL_ACCOUNT_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "체결된 주문의 계좌가 존재하지 않습니다."),
+
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다.");
 
     private final HttpStatus status;
     private final String message;
