@@ -33,11 +33,11 @@ public class Order {
     @Column(precision = 19, scale = 4)
     private BigDecimal filledAmount;
 
-    public Order(Long accountId, String symbol, long quantity, BigDecimal limitPrice) {
-        checkAccountId(accountId);
+    public Order(long accountId, String symbol, long quantity, BigDecimal limitPrice) {
         checkSymbol(symbol);
         checkQuantity(quantity);
         checkLimitPrice(limitPrice);
+
         this.accountId = accountId;
         this.symbol = symbol;
         this.quantity = quantity;
@@ -62,12 +62,6 @@ public class Order {
 
     public BigDecimal getRemainingAmount() {
         return getOrderAmount().subtract(filledAmount);
-    }
-
-    private void checkAccountId(Long accountId) {
-        if (accountId == null) {
-            throw new TradeException(ErrorCode.INVALID_ACCOUNT_ID);
-        }
     }
 
     private void checkSymbol(String symbol) {
