@@ -1,0 +1,148 @@
+package com.sangyunpark99.tradeserver.account;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class AccountTest {
+
+    @Nested
+    @DisplayName("계좌 생성")
+    class Create {
+
+        @Test
+        @DisplayName("현금 0원으로 계좌를 만들 수 있다")
+        void zeroBalance() {
+            Account account = new Account(BigDecimal.ZERO);
+
+            assertThat(account.getBalance()).isEqualByComparingTo("0");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("0");
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("0");
+        }
+
+        @Test
+        @DisplayName("새 계좌는 묶인 돈이 0이라 현금 전부를 주문에 쓸 수 있다")
+        void availableEqualsBalance() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("10000");
+        }
+
+        @Test
+        @DisplayName("현금이 음수면 계좌를 만들 수 없다")
+        void negativeBalance() {
+            assertThatThrownBy(() -> new Account(new BigDecimal("-1")))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("현금이 null이면 계좌를 만들 수 없다")
+        void nullBalance() {
+            assertThatThrownBy(() -> new Account(null))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("묶기")
+    class Reserve {
+
+        @Test
+        @DisplayName("현금 10,000에서 2,000을 묶으면 주문 가능 금액은 8,000이다")
+        void reserveOnce() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            account.reserve(new BigDecimal("2000"));
+
+            assertThat(account.getBalance()).isEqualByComparingTo("10000");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("2000");
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("8000");
+        }
+
+        @Test
+        @DisplayName("2,000을 묶은 뒤 3,000을 더 묶으면 묶인 돈은 5,000, 주문 가능 금액은 5,000이다")
+        void reserveTwiceAccumulates() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            account.reserve(new BigDecimal("2000"));
+            account.reserve(new BigDecimal("3000"));
+
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("5000");
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("5000");
+        }
+
+        @Test
+        @DisplayName("주문 가능 금액 전부를 묶을 수 있다")
+        void reserveExactlyAvailable() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            account.reserve(new BigDecimal("10000"));
+
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("0");
+        }
+
+        @Test
+        @DisplayName("이미 묶인 돈을 빼고 남은 금액보다 크면 거절하고, 묶인 돈은 그대로다")
+        void rejectWhenExceedsAvailable() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            assertThatThrownBy(() -> account.reserve(new BigDecimal("9000")))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("2000");
+        }
+
+        @Test
+        @DisplayName("현금의 절반보다 커도 주문 가능 금액 이하면 묶을 수 있다")
+        void reserveMoreThanHalf() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            account.reserve(new BigDecimal("6000"));
+
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("4000");
+        }
+
+        @Test
+        @DisplayName("소수점 4자리 금액도 정확히 묶는다")
+        void reserveFractional() {
+            Account account = new Account(new BigDecimal("100"));
+
+            account.reserve(new BigDecimal("0.0001"));
+
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("99.9999");
+        }
+
+        @Test
+        @DisplayName("0원을 묶으면 거절한다")
+        void rejectZero() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            assertThatThrownBy(() -> account.reserve(BigDecimal.ZERO))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("음수를 묶으면 거절한다")
+        void rejectNegative() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            assertThatThrownBy(() -> account.reserve(new BigDecimal("-1")))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("null을 묶으면 거절한다")
+        void rejectNull() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            assertThatThrownBy(() -> account.reserve(null))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+}
