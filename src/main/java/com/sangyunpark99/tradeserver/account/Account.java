@@ -38,8 +38,8 @@ public class Account {
         return this.balance.subtract(this.reservedBalance);
     }
 
-    private void checkBalance(BigDecimal balance) {
-        if(balance == null || balance.compareTo(BigDecimal.ZERO) < 0) {
+    private void checkBalance(BigDecimal amount) {
+        if(amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("balance 값이 올바르지 않습니다.");
         }
     }
