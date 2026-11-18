@@ -20,7 +20,11 @@ public enum ErrorCode {
     FILL_PRICE_EXCEEDS_LIMIT(HttpStatus.INTERNAL_SERVER_ERROR, "체결가가 지정가보다 높습니다."),
     OVERFILL(HttpStatus.INTERNAL_SERVER_ERROR, "누적 체결 수량이 주문 수량을 넘습니다."),
 
-    NOT_FOUND_ACCOUNT(HttpStatus.NOT_FOUND, "계좌가 존재하지 않습니다.");
+    NOT_FOUND_ACCOUNT(HttpStatus.NOT_FOUND, "계좌가 존재하지 않습니다."),
+    NOT_FOUND_ORDER(HttpStatus.NOT_FOUND, "주문이 존재하지 않습니다."),
+
+    FILL_ORDER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "체결 통보된 주문이 존재하지 않습니다."),
+    FILL_ACCOUNT_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "체결된 주문의 계좌가 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String message;
