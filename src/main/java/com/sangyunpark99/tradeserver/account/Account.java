@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.account;
 
+import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
+import com.sangyunpark99.tradeserver.common.exception.TradeException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -53,25 +55,25 @@ public class Account {
 
     private void checkNotNegative(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("현금 잔고는 0 이상이어야 합니다.");
+            throw new TradeException(ErrorCode.INVALID_BALANCE);
         }
     }
 
     private void checkPositive(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
+            throw new TradeException(ErrorCode.INVALID_AMOUNT);
         }
     }
 
     private void checkWithinAvailable(BigDecimal amount) {
         if (amount.compareTo(getAvailableBalance()) > 0) {
-            throw new IllegalArgumentException("묶을 금액이 주문 가능 금액보다 큽니다.");
+            throw new TradeException(ErrorCode.INSUFFICIENT_AVAILABLE_BALANCE);
         }
     }
 
     private void checkWithinReserved(BigDecimal amount) {
         if (amount.compareTo(this.reservedBalance) > 0) {
-            throw new IllegalArgumentException("금액이 묶인 금액보다 큽니다.");
+            throw new TradeException(ErrorCode.EXCEED_RESERVED_BALANCE);
         }
     }
 }
