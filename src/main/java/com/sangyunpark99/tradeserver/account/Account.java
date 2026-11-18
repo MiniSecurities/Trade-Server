@@ -28,6 +28,12 @@ public class Account {
         this.reservedBalance = BigDecimal.ZERO;
     }
 
+    public void reserve(BigDecimal balance) {
+        checkAmount(balance) ;
+        checkReservedBalance(balance);
+        this.reservedBalance = this.reservedBalance.add(balance);
+    }
+
     public BigDecimal getAvailableBalance() {
         return this.balance.subtract(this.reservedBalance);
     }
