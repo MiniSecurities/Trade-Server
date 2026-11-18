@@ -41,6 +41,12 @@ public class Account {
         this.reservedBalance = this.reservedBalance.subtract(amount);
     }
 
+    public void release(BigDecimal amount) {
+        checkPositive(amount);
+        checkWithinReserved(amount);
+        this.reservedBalance = this.reservedBalance.subtract(amount);
+    }
+
     public BigDecimal getAvailableBalance() {
         return this.balance.subtract(this.reservedBalance);
     }
@@ -65,7 +71,7 @@ public class Account {
 
     private void checkWithinReserved(BigDecimal amount) {
         if (amount.compareTo(this.reservedBalance) > 0) {
-            throw new IllegalArgumentException("체결 금액이 묶인 금액보다 큽니다.");
+            throw new IllegalArgumentException("금액이 묶인 금액보다 큽니다.");
         }
     }
 }
