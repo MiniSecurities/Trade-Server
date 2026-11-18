@@ -145,4 +145,128 @@ class AccountTest {
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
+
+    @Nested
+    @DisplayName("체결 반영")
+    class ApplyFill {
+
+        @Test
+        @DisplayName("2,000을 묶고 1,980이 체결되면 현금과 묶인 돈에서 같은 금액이 빠지고 주문 가능 금액은 그대로다")
+        void applyFull() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            account.applyFill(new BigDecimal("1980"));
+
+            assertThat(account.getBalance()).isEqualByComparingTo("8020");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("20");
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("8000");
+        }
+
+        @Test
+        @DisplayName("부분 체결이 여러 번 와도 누적해서 빠진다")
+        void applyPartialTwice() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            account.applyFill(new BigDecimal("594"));
+            account.applyFill(new BigDecimal("995"));
+
+            assertThat(account.getBalance()).isEqualByComparingTo("8411");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("411");
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("8000");
+        }
+
+        @Test
+        @DisplayName("묶인 돈 전부를 체결로 반영할 수 있다")
+        void applyExactlyReserved() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            account.applyFill(new BigDecimal("2000"));
+
+            assertThat(account.getBalance()).isEqualByComparingTo("8000");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("0");
+        }
+
+        @Test
+        @DisplayName("묶인 돈보다 큰 금액은 거절하고, 현금과 묶인 돈은 그대로다")
+        void rejectWhenExceedsReserved() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            assertThatThrownBy(() -> account.applyFill(new BigDecimal("2100")))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThat(account.getBalance()).isEqualByComparingTo("10000");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("2000");
+        }
+
+        @Test
+        @DisplayName("같은 체결이 두 번 와서 묶인 돈을 넘으면 두 번째는 거절한다")
+        void rejectDuplicateFillOverReserved() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+            account.applyFill(new BigDecimal("1980"));
+
+            assertThatThrownBy(() -> account.applyFill(new BigDecimal("1980")))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThat(account.getBalance()).isEqualByComparingTo("8020");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("20");
+        }
+
+        @Test
+        @DisplayName("묶은 돈이 없으면 체결을 반영할 수 없다")
+        void rejectWithoutReserve() {
+            Account account = new Account(new BigDecimal("10000"));
+
+            assertThatThrownBy(() -> account.applyFill(new BigDecimal("1")))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThat(account.getBalance()).isEqualByComparingTo("10000");
+        }
+
+        @Test
+        @DisplayName("소수점 4자리 체결 금액도 정확히 빠진다")
+        void applyFractional() {
+            Account account = new Account(new BigDecimal("100"));
+            account.reserve(new BigDecimal("10"));
+
+            account.applyFill(new BigDecimal("9.9999"));
+
+            assertThat(account.getBalance()).isEqualByComparingTo("90.0001");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("0.0001");
+        }
+
+        @Test
+        @DisplayName("0원 체결을 반영하면 거절한다")
+        void rejectZero() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            assertThatThrownBy(() -> account.applyFill(BigDecimal.ZERO))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("음수 체결을 반영하면 거절한다")
+        void rejectNegative() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            assertThatThrownBy(() -> account.applyFill(new BigDecimal("-1")))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("null 체결을 반영하면 거절한다")
+        void rejectNull() {
+            Account account = new Account(new BigDecimal("10000"));
+            account.reserve(new BigDecimal("2000"));
+
+            assertThatThrownBy(() -> account.applyFill(null))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
 }

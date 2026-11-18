@@ -23,37 +23,49 @@ public class Account {
     private BigDecimal reservedBalance;
 
     public Account(BigDecimal balance) {
-        checkBalance(balance);
+        checkNotNegative(balance);
         this.balance = balance;
         this.reservedBalance = BigDecimal.ZERO;
     }
 
-    public void reserve(BigDecimal balance) {
-        checkAmount(balance) ;
-        checkReservedBalance(balance);
-        this.reservedBalance = this.reservedBalance.add(balance);
+    public void reserve(BigDecimal amount) {
+        checkPositive(amount);
+        checkWithinAvailable(amount);
+        this.reservedBalance = this.reservedBalance.add(amount);
+    }
+
+    public void applyFill(BigDecimal amount) {
+        checkPositive(amount);
+        checkWithinReserved(amount);
+        this.balance = this.balance.subtract(amount);
+        this.reservedBalance = this.reservedBalance.subtract(amount);
     }
 
     public BigDecimal getAvailableBalance() {
         return this.balance.subtract(this.reservedBalance);
     }
 
-    private void checkBalance(BigDecimal amount) {
-        if(amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("balance 값이 올바르지 않습니다.");
+    private void checkNotNegative(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("현금 잔고는 0 이상이어야 합니다.");
         }
     }
 
-     private void checkAmount(BigDecimal amount) {
-        if(amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("묶을 금액은 0보다 커야 합니다.");
+    private void checkPositive(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
         }
     }
 
-    private void checkReservedBalance(BigDecimal reservedAmount) {
-        BigDecimal availableBalance = getAvailableBalance();
-        if(availableBalance.compareTo(reservedAmount) < 0) {
-            throw new IllegalArgumentException("주문 금액이 잔액보다 큽니다.");
+    private void checkWithinAvailable(BigDecimal amount) {
+        if (amount.compareTo(getAvailableBalance()) > 0) {
+            throw new IllegalArgumentException("묶을 금액이 주문 가능 금액보다 큽니다.");
+        }
+    }
+
+    private void checkWithinReserved(BigDecimal amount) {
+        if (amount.compareTo(this.reservedBalance) > 0) {
+            throw new IllegalArgumentException("체결 금액이 묶인 금액보다 큽니다.");
         }
     }
 }
