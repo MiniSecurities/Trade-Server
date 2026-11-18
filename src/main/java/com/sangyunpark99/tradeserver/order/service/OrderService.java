@@ -30,4 +30,17 @@ public class OrderService {
 
         return orderRepository.save(order).getId();
     }
+
+    @Transactional
+    public void applyFill(long orderId, long fillQuantity, BigDecimal fillPrice) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+        Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.FILL_ACCOUNT_NOT_FOUND));
+
+        order.applyFill(fillQuantity, fillPrice);
+        account.applyFill(fillPrice.multiply(BigDecimal.valueOf(fillQuantity)));
+
+        if(order.isCompleted() && order.getRemainingAmount().compareTo(BigDecimal.ZERO) > 0) {
+            account.release(order.getRemainingAmount());
+        }
+    }
 }
