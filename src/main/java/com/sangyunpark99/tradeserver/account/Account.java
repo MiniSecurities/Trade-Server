@@ -43,4 +43,17 @@ public class Account {
             throw new IllegalArgumentException("balance 값이 올바르지 않습니다.");
         }
     }
+
+     private void checkAmount(BigDecimal amount) {
+        if(amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("묶을 금액은 0보다 커야 합니다.");
+        }
+    }
+
+    private void checkReservedBalance(BigDecimal reservedAmount) {
+        BigDecimal availableBalance = getAvailableBalance();
+        if(availableBalance.compareTo(reservedAmount) < 0) {
+            throw new IllegalArgumentException("주문 금액이 잔액보다 큽니다.");
+        }
+    }
 }
