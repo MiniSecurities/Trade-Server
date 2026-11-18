@@ -205,4 +205,106 @@ class OrderControllerTest {
                     .andExpect(status().isNotFound());
         }
     }
+
+    private Long placeOrderAndGetId(Long accountId, int quantity, int limitPrice) throws Exception {
+        placeOrder(body(accountId, "\"AAPL\"", quantity, limitPrice))
+                .andExpect(status().isCreated());
+        return orderRepository.findAll().getLast().getId();
+    }
+
+    private ResultActions applyFill(String body) throws Exception {
+        return mockMvc.perform(post("/api/fills")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
+    private String fillBody(Object orderId, Object fillQuantity, Object fillPrice) {
+        return """
+                {"orderId": %s, "fillQuantity": %s, "fillPrice": %s}
+                """.formatted(orderId, fillQuantity, fillPrice);
+    }
+
+    @Nested
+    @DisplayName("체결 통보 받기")
+    class ApplyFill {
+
+        @Test
+        @DisplayName("체결을 반영하고 204를 돌려준다")
+        void appliesFillAndReturnsNoContent() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+
+            applyFill(fillBody(orderId, 3, "197.42"))
+                    .andExpect(status().isNoContent());
+
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getBalance()).isEqualByComparingTo("9407.74");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("1407.74");
+
+            Order order = orderRepository.findById(orderId).orElseThrow();
+            assertThat(order.getFilledQuantity()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("부분 체결 세 번으로 완료되면 남은 돈이 풀린다")
+        void completesWithThreePartialFills() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+
+            applyFill(fillBody(orderId, 3, "197.42")).andExpect(status().isNoContent());
+            applyFill(fillBody(orderId, 5, "199.81")).andExpect(status().isNoContent());
+            applyFill(fillBody(orderId, 2, "196.10")).andExpect(status().isNoContent());
+
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getBalance()).isEqualByComparingTo("8016.49");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("0");
+            assertThat(orderRepository.findById(orderId).orElseThrow().isCompleted()).isTrue();
+        }
+
+        @Test
+        @DisplayName("체결가가 없으면 400")
+        void missingFillPrice() throws Exception {
+            applyFill("""
+                    {"orderId": 1, "fillQuantity": 3}
+                    """)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                    .andExpect(jsonPath("$.message").value(containsString("fillPrice")));
+        }
+
+        @Test
+        @DisplayName("모르는 주문의 체결이면 500 FILL_ORDER_NOT_FOUND")
+        void unknownOrder() throws Exception {
+            applyFill(fillBody(999_999, 3, "197.42"))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath("$.code").value("FILL_ORDER_NOT_FOUND"));
+        }
+
+        @Test
+        @DisplayName("체결가가 지정가보다 높으면 500이고 주문과 계좌가 바뀌지 않는다")
+        void fillPriceAboveLimit() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+
+            applyFill(fillBody(orderId, 3, "200.01"))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath("$.code").value("FILL_PRICE_EXCEEDS_LIMIT"));
+
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getBalance()).isEqualByComparingTo("10000");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("2000");
+            assertThat(orderRepository.findById(orderId).orElseThrow().getFilledQuantity()).isZero();
+        }
+
+        @Test
+        @DisplayName("주문 수량을 넘는 체결이면 500 OVERFILL")
+        void overfill() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+
+            applyFill(fillBody(orderId, 11, "199"))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath("$.code").value("OVERFILL"));
+        }
+    }
 }
