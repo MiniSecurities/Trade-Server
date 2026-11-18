@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.account;
 
+import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
+import com.sangyunpark99.tradeserver.common.exception.TradeException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,14 +39,14 @@ class AccountTest {
         @DisplayName("현금이 음수면 계좌를 만들 수 없다")
         void negativeBalance() {
             assertThatThrownBy(() -> new Account(new BigDecimal("-1")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_BALANCE));
         }
 
         @Test
         @DisplayName("현금이 null이면 계좌를 만들 수 없다")
         void nullBalance() {
             assertThatThrownBy(() -> new Account(null))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_BALANCE));
         }
     }
 
@@ -93,7 +95,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.reserve(new BigDecimal("9000")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INSUFFICIENT_AVAILABLE_BALANCE));
 
             assertThat(account.getReservedBalance()).isEqualByComparingTo("2000");
         }
@@ -124,7 +126,7 @@ class AccountTest {
             Account account = new Account(new BigDecimal("10000"));
 
             assertThatThrownBy(() -> account.reserve(BigDecimal.ZERO))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
 
         @Test
@@ -133,7 +135,7 @@ class AccountTest {
             Account account = new Account(new BigDecimal("10000"));
 
             assertThatThrownBy(() -> account.reserve(new BigDecimal("-1")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
 
         @Test
@@ -142,7 +144,7 @@ class AccountTest {
             Account account = new Account(new BigDecimal("10000"));
 
             assertThatThrownBy(() -> account.reserve(null))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
     }
 
@@ -196,7 +198,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.applyFill(new BigDecimal("2100")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.EXCEED_RESERVED_BALANCE));
 
             assertThat(account.getBalance()).isEqualByComparingTo("10000");
             assertThat(account.getReservedBalance()).isEqualByComparingTo("2000");
@@ -210,7 +212,7 @@ class AccountTest {
             account.applyFill(new BigDecimal("1980"));
 
             assertThatThrownBy(() -> account.applyFill(new BigDecimal("1980")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.EXCEED_RESERVED_BALANCE));
 
             assertThat(account.getBalance()).isEqualByComparingTo("8020");
             assertThat(account.getReservedBalance()).isEqualByComparingTo("20");
@@ -222,7 +224,7 @@ class AccountTest {
             Account account = new Account(new BigDecimal("10000"));
 
             assertThatThrownBy(() -> account.applyFill(new BigDecimal("1")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.EXCEED_RESERVED_BALANCE));
 
             assertThat(account.getBalance()).isEqualByComparingTo("10000");
         }
@@ -246,7 +248,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.applyFill(BigDecimal.ZERO))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
 
         @Test
@@ -256,7 +258,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.applyFill(new BigDecimal("-1")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
 
         @Test
@@ -266,7 +268,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.applyFill(null))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
     }
 
@@ -336,7 +338,7 @@ class AccountTest {
             account.applyFill(new BigDecimal("7900"));
 
             assertThatThrownBy(() -> account.release(new BigDecimal("150")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.EXCEED_RESERVED_BALANCE));
 
             assertThat(account.getBalance()).isEqualByComparingTo("2100");
             assertThat(account.getReservedBalance()).isEqualByComparingTo("100");
@@ -350,7 +352,7 @@ class AccountTest {
             account.release(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.release(new BigDecimal("2000")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.EXCEED_RESERVED_BALANCE));
 
             assertThat(account.getBalance()).isEqualByComparingTo("10000");
             assertThat(account.getReservedBalance()).isEqualByComparingTo("0");
@@ -376,7 +378,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.release(BigDecimal.ZERO))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
 
         @Test
@@ -386,7 +388,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.release(new BigDecimal("-1")))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
 
         @Test
@@ -396,7 +398,7 @@ class AccountTest {
             account.reserve(new BigDecimal("2000"));
 
             assertThatThrownBy(() -> account.release(null))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOfSatisfying(TradeException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
         }
     }
 }
