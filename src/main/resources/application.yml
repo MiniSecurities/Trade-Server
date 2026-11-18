@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: Trade-Server
+  datasource:
+    url: jdbc:mysql://localhost:3307/trade?serverTimezone=Asia/Seoul
+    username: root
+    password: root
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
