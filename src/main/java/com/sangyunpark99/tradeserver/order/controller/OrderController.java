@@ -1,5 +1,6 @@
 package com.sangyunpark99.tradeserver.order.controller;
 
+import com.sangyunpark99.tradeserver.order.controller.dto.FillRequest;
 import com.sangyunpark99.tradeserver.order.controller.dto.PlaceOrderRequest;
 import com.sangyunpark99.tradeserver.order.controller.dto.PlaceOrderResponse;
 import com.sangyunpark99.tradeserver.order.service.OrderService;
@@ -21,5 +22,11 @@ public class OrderController {
    public ResponseEntity<PlaceOrderResponse> placeOrder(@Validated @RequestBody PlaceOrderRequest request) {
         Long orderId = orderService.placeOrder(request.accountId(), request.symbol(), request.quantity(), request.limitPrice());
         return ResponseEntity.status(HttpStatus.CREATED).body(new PlaceOrderResponse(orderId));
+   }
+
+   @PostMapping("/api/fills")
+   public ResponseEntity<Void> applyFill(@Validated @RequestBody FillRequest request) {
+        orderService.applyFill(request.orderId(), request.fillQuantity(), request.fillPrice());
+        return ResponseEntity.noContent().build();
    }
 }
