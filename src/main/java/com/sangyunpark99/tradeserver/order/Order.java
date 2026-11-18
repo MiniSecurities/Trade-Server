@@ -1,0 +1,108 @@
+package com.sangyunpark99.tradeserver.order;
+
+import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
+import com.sangyunpark99.tradeserver.common.exception.TradeException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "orders")
+public class Order {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Long accountId;
+
+    private String symbol;
+
+    private long quantity;
+
+    @Column(precision = 19, scale = 4)
+    private BigDecimal limitPrice;
+
+    private long filledQuantity;
+
+    @Column(precision = 19, scale = 4)
+    private BigDecimal filledAmount;
+
+    public Order(Long accountId, String symbol, long quantity, BigDecimal limitPrice) {
+        checkAccountId(accountId);
+        checkSymbol(symbol);
+        checkQuantity(quantity);
+        checkLimitPrice(limitPrice);
+        this.accountId = accountId;
+        this.symbol = symbol;
+        this.quantity = quantity;
+        this.limitPrice = limitPrice;
+        this.filledAmount = BigDecimal.ZERO;
+    }
+
+    public void applyFill(long fillQuantity, BigDecimal fillPrice) {
+        checkFillQuantity(fillQuantity);
+        checkFillPrice(fillPrice);
+        this.filledQuantity += fillQuantity;
+        this.filledAmount = this.filledAmount.add(fillPrice.multiply(BigDecimal.valueOf(fillQuantity)));
+    }
+
+    public BigDecimal getOrderAmount() {
+        return limitPrice.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    public boolean isCompleted() {
+        return quantity == filledQuantity;
+    }
+
+    public BigDecimal getRemainingAmount() {
+        return getOrderAmount().subtract(filledAmount);
+    }
+
+    private void checkAccountId(Long accountId) {
+        if (accountId == null) {
+            throw new TradeException(ErrorCode.INVALID_ACCOUNT_ID);
+        }
+    }
+
+    private void checkSymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            throw new TradeException(ErrorCode.INVALID_SYMBOL);
+        }
+    }
+
+    private void checkQuantity(long quantity) {
+        if (quantity <= 0) {
+            throw new TradeException(ErrorCode.INVALID_QUANTITY);
+        }
+    }
+
+    private void checkLimitPrice(BigDecimal limitPrice) {
+        if (limitPrice == null || limitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new TradeException(ErrorCode.INVALID_LIMIT_PRICE);
+        }
+    }
+
+    private void checkFillQuantity(long fillQuantity) {
+        if (fillQuantity <= 0) {
+            throw new TradeException(ErrorCode.INVALID_FILL_QUANTITY);
+        }
+        if (this.filledQuantity + fillQuantity > this.quantity) {
+            throw new TradeException(ErrorCode.OVERFILL);
+        }
+    }
+
+    private void checkFillPrice(BigDecimal fillPrice) {
+        if (fillPrice == null || fillPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new TradeException(ErrorCode.INVALID_FILL_PRICE);
+        }
+        if (fillPrice.compareTo(this.limitPrice) > 0) {
+            throw new TradeException(ErrorCode.FILL_PRICE_EXCEEDS_LIMIT);
+        }
+    }
+}
