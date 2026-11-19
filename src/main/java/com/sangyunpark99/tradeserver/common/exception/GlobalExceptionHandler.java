@@ -18,9 +18,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTradeException(TradeException e) {
         ErrorCode errorCode = e.getErrorCode();
         if (errorCode.getStatus().is5xxServerError()) {
-            log.error("trade error code={}", errorCode.name(), e);
+            log.error("서버 오류 응답 code={}", errorCode.name(), e);
         } else {
-            log.info("trade rejected code={}", errorCode.name());
+            log.info("요청 거절 응답 code={}", errorCode.name());
         }
         return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.of(errorCode));
     }
@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(springError.getStatusCode())
                     .body(new ErrorResponse(springError.getStatusCode().toString(), e.getMessage()));
         }
-        log.error("unexpected error", e);
+        log.error("예상하지 못한 오류", e);
         return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getStatus())
                 .body(ErrorResponse.of(ErrorCode.INTERNAL_ERROR));
     }
