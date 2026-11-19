@@ -5,6 +5,7 @@ import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
 import com.sangyunpark99.tradeserver.order.entity.Order;
+import com.sangyunpark99.tradeserver.order.entity.OrderStatus;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -297,6 +298,29 @@ class OrderServiceTest {
             Order order = orderRepository.findById(orderId).orElseThrow();
             assertThat(order.getFilledQuantity()).isZero();
             assertThat(order.getFilledAmount()).isEqualByComparingTo("0");
+        }
+    }
+
+    @Nested
+    @DisplayName("주문 상태 저장")
+    class StatusPersistence {
+
+        @Test
+        @DisplayName("접수 직후 PENDING, 부분 체결 후 PARTIALLY_FILLED, 완료 후 FILLED로 저장된다")
+        void statusIsPersisted() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            assertThat(statusOf(orderId)).isEqualTo(OrderStatus.PENDING);
+
+            orderService.applyFill(orderId, 3, new BigDecimal("198"));
+            assertThat(statusOf(orderId)).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+
+            orderService.applyFill(orderId, 7, new BigDecimal("199"));
+            assertThat(statusOf(orderId)).isEqualTo(OrderStatus.FILLED);
+        }
+
+        private OrderStatus statusOf(Long orderId) {
+            return orderRepository.findById(orderId).orElseThrow().getOrderStatus();
         }
     }
 }
