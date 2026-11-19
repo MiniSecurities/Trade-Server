@@ -395,4 +395,73 @@ class OrderTest {
             assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
         }
     }
+
+    @Nested
+    @DisplayName("브로커 접수 확인")
+    class Accept {
+
+        @Test
+        @DisplayName("PENDING 주문은 ACCEPTED가 된다")
+        void pendingToAccepted() {
+            Order order = order(10, "200");
+
+            order.accept();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("UNKNOWN 주문도 접수가 확인되면 ACCEPTED가 된다")
+        void unknownToAccepted() {
+            Order order = order(10, "200");
+            order.markUnknown();
+
+            order.accept();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("체결이 먼저 와서 PARTIALLY_FILLED면 접수 확인이 와도 뒤로 돌아가지 않는다")
+        void partiallyFilledStays() {
+            Order order = order(10, "200");
+            order.applyFill(3, new BigDecimal("198"));
+
+            order.accept();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+
+        @Test
+        @DisplayName("이미 FILLED면 접수 확인이 와도 그대로다")
+        void filledStays() {
+            Order order = order(10, "200");
+            order.applyFill(10, new BigDecimal("198"));
+
+            order.accept();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.FILLED);
+        }
+
+        @Test
+        @DisplayName("접수 확인이 두 번 와도 ACCEPTED 그대로다")
+        void acceptTwice() {
+            Order order = order(10, "200");
+            order.accept();
+
+            order.accept();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("거절된 주문에 접수 확인이 오면 모순이라 예외다")
+        void rejectedThenAcceptIsContradiction() {
+            Order order = order(10, "200");
+            order.reject();
+
+            assertError(order::accept, ErrorCode.INVALID_ORDER_STATUS);
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.REJECTED);
+        }
+    }
 }
