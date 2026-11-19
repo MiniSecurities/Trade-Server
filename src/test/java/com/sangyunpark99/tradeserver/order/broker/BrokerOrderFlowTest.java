@@ -122,4 +122,18 @@ class BrokerOrderFlowTest {
 
         verify(brokerClient, after(500).never()).sendOrder(any());
     }
+
+    @Test
+    @DisplayName("브로커에 끝내 연결하지 못하면 PENDING 그대로, 묶인 돈도 그대로")
+    void notDelivered() throws InterruptedException {
+        given(brokerClient.sendOrder(any())).willReturn(BrokerResult.NOT_DELIVERED);
+        Long accountId = createAccount("10000");
+
+        Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+        verify(brokerClient, timeout(5_000)).sendOrder(any());
+        Thread.sleep(200);
+        assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("2000");
+    }
 }
