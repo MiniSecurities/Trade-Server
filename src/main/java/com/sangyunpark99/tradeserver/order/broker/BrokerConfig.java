@@ -3,12 +3,16 @@ package com.sangyunpark99.tradeserver.order.broker;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestClient;
 
+import java.net.ConnectException;
 import java.net.http.HttpClient;
+import java.net.http.HttpConnectTimeoutException;
 import java.time.Duration;
 
 @Configuration
@@ -39,5 +43,19 @@ public class BrokerConfig {
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.initialize();
         return executor;
+    }
+
+    @Bean
+    public RetryTemplate brokerRetryTemplate() {
+        RetryPolicy policy = RetryPolicy.builder()
+                .includes(ConnectException.class, HttpConnectTimeoutException.class)
+                .maxRetries(3)
+                .delay(Duration.ofMillis(500))
+                .multiplier(2)
+                .jitter(Duration.ofMillis(200))
+                .maxDelay(Duration.ofSeconds(2))
+                .build();
+
+        return new RetryTemplate(policy);
     }
 }
