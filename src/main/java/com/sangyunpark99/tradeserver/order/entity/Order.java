@@ -81,6 +81,16 @@ public class Order {
         throw new TradeException(ErrorCode.INVALID_ORDER_STATUS);
     }
 
+    public void accept() {
+        if(this.orderStatus == OrderStatus.REJECTED) {
+            throw new TradeException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        if(this.orderStatus == OrderStatus.PENDING || this.orderStatus == OrderStatus.UNKNOWN) {
+            this.orderStatus = OrderStatus.ACCEPTED;
+        }
+    }
+
     public BigDecimal getRemainingAmount() {
         return getOrderAmount().subtract(filledAmount);
     }
