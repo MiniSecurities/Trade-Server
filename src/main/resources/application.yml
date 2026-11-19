@@ -9,3 +9,8 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update
+
+broker:
+  base-url: http://localhost:8081
+  order-sending:
+    enabled: true

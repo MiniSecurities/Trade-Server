@@ -6,3 +6,8 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: create-drop
+
+broker:
+  base-url: http://localhost:65535
+  order-sending:
+    enabled: false
