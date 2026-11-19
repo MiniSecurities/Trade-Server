@@ -323,4 +323,113 @@ class OrderServiceTest {
             return orderRepository.findById(orderId).orElseThrow().getOrderStatus();
         }
     }
+
+    @Nested
+    @DisplayName("브로커 결과 반영")
+    class ApplyBrokerResult {
+
+        @Test
+        @DisplayName("접수 확인이면 ACCEPTED가 되고 묶인 돈은 그대로다")
+        void markAccepted() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+            orderService.markAccepted(orderId);
+
+            assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus()).isEqualTo(OrderStatus.ACCEPTED);
+            assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("2000");
+        }
+
+        @Test
+        @DisplayName("결과 모름이면 UNKNOWN이 되고 묶인 돈은 풀지 않는다")
+        void markUnknownKeepsMoney() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+            orderService.markUnknown(orderId);
+
+            assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus()).isEqualTo(OrderStatus.UNKNOWN);
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("2000");
+            assertThat(account.getBalance()).isEqualByComparingTo("10000");
+        }
+
+        @Test
+        @DisplayName("거절이면 REJECTED가 되고 묶인 돈이 전부 풀린다")
+        void rejectReleasesMoney() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+            orderService.reject(orderId);
+
+            assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus()).isEqualTo(OrderStatus.REJECTED);
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("0");
+            assertThat(account.getBalance()).isEqualByComparingTo("10000");
+        }
+
+        @Test
+        @DisplayName("결과 모름이었다가 거절되면 그때 돈이 풀린다")
+        void unknownThenRejected() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            orderService.markUnknown(orderId);
+
+            orderService.reject(orderId);
+
+            assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("0");
+        }
+
+        @Test
+        @DisplayName("한 주문이 거절돼도 같은 계좌의 다른 주문 묶인 돈은 그대로다")
+        void rejectReleasesOnlyThatOrder() {
+            Long accountId = createAccount("10000");
+            Long orderA = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            orderService.placeOrder(accountId, "AAPL", 5, new BigDecimal("1000"));
+
+            orderService.reject(orderA);
+
+            assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("5000");
+        }
+
+        @Test
+        @DisplayName("이미 체결된 주문을 거절하면 예외이고 돈과 상태 모두 그대로다")
+        void rejectAfterFillRollsBack() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            orderService.applyFill(orderId, 3, new BigDecimal("198"));
+
+            assertTradeException(() -> orderService.reject(orderId), ErrorCode.INVALID_ORDER_STATUS);
+
+            assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+            assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("1406");
+        }
+
+        @Test
+        @DisplayName("체결이 먼저 오고 접수 확인이 나중에 와도 PARTIALLY_FILLED 그대로다")
+        void acceptAfterFillKeepsStatus() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            orderService.applyFill(orderId, 3, new BigDecimal("198"));
+
+            orderService.markAccepted(orderId);
+
+            assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+
+        @Test
+        @DisplayName("거절된 주문에 체결이 오면 FILL_ON_REJECTED_ORDER이고 돈은 바뀌지 않는다")
+        void fillOnRejectedOrder() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            orderService.reject(orderId);
+
+            assertTradeException(() -> orderService.applyFill(orderId, 3, new BigDecimal("198")),
+                    ErrorCode.FILL_ON_REJECTED_ORDER);
+
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getBalance()).isEqualByComparingTo("10000");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("0");
+        }
+    }
 }
