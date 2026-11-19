@@ -3,6 +3,8 @@ package com.sangyunpark99.tradeserver.order;
 import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
+import com.sangyunpark99.tradeserver.order.entity.Order;
+import com.sangyunpark99.tradeserver.order.entity.OrderStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -246,6 +248,151 @@ class OrderTest {
             account.applyFill(new BigDecimal("1980"));
 
             assertError(() -> account.release(order.getFilledAmount()), ErrorCode.EXCEED_RESERVED_BALANCE);
+        }
+    }
+
+    @Nested
+    @DisplayName("주문 상태")
+    class Status {
+
+        @Test
+        @DisplayName("새 주문은 PENDING이다")
+        void newOrderIsPending() {
+            assertThat(order(10, "200").getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("일부만 체결되면 PARTIALLY_FILLED다")
+        void partialFill() {
+            Order order = order(10, "200");
+
+            order.applyFill(3, new BigDecimal("198"));
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+
+        @Test
+        @DisplayName("나눠서 전부 체결되면 FILLED다")
+        void filledInParts() {
+            Order order = order(10, "200");
+
+            order.applyFill(3, new BigDecimal("198"));
+            order.applyFill(7, new BigDecimal("199"));
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.FILLED);
+        }
+
+        @Test
+        @DisplayName("한 번에 전부 체결되면 FILLED다")
+        void filledAtOnce() {
+            Order order = order(10, "200");
+
+            order.applyFill(10, new BigDecimal("200"));
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.FILLED);
+        }
+
+        @Test
+        @DisplayName("PENDING 상태에서도 체결은 반영된다 (접수 확인보다 체결이 먼저 온 경우)")
+        void fillOnPendingIsApplied() {
+            Order order = order(10, "200");
+
+            order.applyFill(3, new BigDecimal("198"));
+
+            assertThat(order.getFilledQuantity()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("UNKNOWN 상태에서 체결이 오면 반영된다 (체결이 접수의 증거)")
+        void fillOnUnknownIsApplied() {
+            Order order = order(10, "200");
+            order.markUnknown();
+
+            order.applyFill(3, new BigDecimal("198"));
+
+            assertThat(order.getFilledQuantity()).isEqualTo(3);
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+
+        @Test
+        @DisplayName("REJECTED 주문에 체결이 오면 거절되고 아무것도 바뀌지 않는다")
+        void fillOnRejectedIsRefused() {
+            Order order = order(10, "200");
+            order.reject();
+
+            assertError(() -> order.applyFill(3, new BigDecimal("198")), ErrorCode.FILL_ON_REJECTED_ORDER);
+
+            assertThat(order.getFilledQuantity()).isZero();
+            assertThat(order.getFilledAmount()).isEqualByComparingTo("0");
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.REJECTED);
+        }
+
+        @Test
+        @DisplayName("체결이 거절되면 상태도 바뀌지 않는다")
+        void statusUnchangedOnRejectedFill() {
+            Order order = order(10, "200");
+            order.applyFill(3, new BigDecimal("198"));
+
+            assertError(() -> order.applyFill(8, new BigDecimal("198")), ErrorCode.OVERFILL);
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+    }
+
+    @Nested
+    @DisplayName("결과 모름과 거절")
+    class UnknownAndReject {
+
+        @Test
+        @DisplayName("PENDING 주문을 결과 모름으로 바꾸면 UNKNOWN이다")
+        void pendingToUnknown() {
+            Order order = order(10, "200");
+
+            order.markUnknown();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.UNKNOWN);
+        }
+
+        @Test
+        @DisplayName("체결이 먼저 와서 PARTIALLY_FILLED면 결과 모름으로 바꾸지 않는다")
+        void partiallyFilledStaysOnUnknown() {
+            Order order = order(10, "200");
+            order.applyFill(3, new BigDecimal("198"));
+
+            order.markUnknown();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+
+        @Test
+        @DisplayName("PENDING 주문을 거절하면 REJECTED다")
+        void pendingToRejected() {
+            Order order = order(10, "200");
+
+            order.reject();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.REJECTED);
+        }
+
+        @Test
+        @DisplayName("UNKNOWN 주문도 거절될 수 있다 (재전송했더니 브로커가 거절)")
+        void unknownToRejected() {
+            Order order = order(10, "200");
+            order.markUnknown();
+
+            order.reject();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.REJECTED);
+        }
+
+        @Test
+        @DisplayName("이미 체결된 주문은 거절할 수 없다")
+        void cannotRejectFilledOrder() {
+            Order order = order(10, "200");
+            order.applyFill(3, new BigDecimal("198"));
+
+            assertError(order::reject, ErrorCode.INVALID_ORDER_STATUS);
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
         }
     }
 }

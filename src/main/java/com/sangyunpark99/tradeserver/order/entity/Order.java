@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.order;
+package com.sangyunpark99.tradeserver.order.entity;
 
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
@@ -33,6 +33,9 @@ public class Order {
     @Column(precision = 19, scale = 4)
     private BigDecimal filledAmount;
 
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus;
+
     public Order(long accountId, String symbol, long quantity, BigDecimal limitPrice) {
         checkSymbol(symbol);
         checkQuantity(quantity);
@@ -43,13 +46,16 @@ public class Order {
         this.quantity = quantity;
         this.limitPrice = limitPrice;
         this.filledAmount = BigDecimal.ZERO;
+        this.orderStatus = OrderStatus.PENDING;
     }
 
     public void applyFill(long fillQuantity, BigDecimal fillPrice) {
+        checkNotRejected();
         checkFillQuantity(fillQuantity);
         checkFillPrice(fillPrice);
         this.filledQuantity += fillQuantity;
         this.filledAmount = this.filledAmount.add(fillPrice.multiply(BigDecimal.valueOf(fillQuantity)));
+        this.orderStatus = isCompleted() ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
     }
 
     public BigDecimal getOrderAmount() {
@@ -58,6 +64,21 @@ public class Order {
 
     public boolean isCompleted() {
         return quantity == filledQuantity;
+    }
+
+    public void markUnknown() {
+        if(this.orderStatus == OrderStatus.PENDING) {
+            this.orderStatus = OrderStatus.UNKNOWN;
+        }
+    }
+
+    public void reject() {
+        if(this.orderStatus == OrderStatus.PENDING || this.orderStatus == OrderStatus.UNKNOWN) {
+            this.orderStatus = OrderStatus.REJECTED;
+            return;
+        }
+
+        throw new TradeException(ErrorCode.INVALID_ORDER_STATUS);
     }
 
     public BigDecimal getRemainingAmount() {
@@ -97,6 +118,12 @@ public class Order {
         }
         if (fillPrice.compareTo(this.limitPrice) > 0) {
             throw new TradeException(ErrorCode.FILL_PRICE_EXCEEDS_LIMIT);
+        }
+    }
+
+    private void checkNotRejected() {
+        if(this.orderStatus == OrderStatus.REJECTED) {
+            throw new TradeException(ErrorCode.FILL_ON_REJECTED_ORDER);
         }
     }
 }

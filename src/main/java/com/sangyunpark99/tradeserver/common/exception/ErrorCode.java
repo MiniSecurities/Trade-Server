@@ -27,6 +27,8 @@ public enum ErrorCode {
 
     FILL_ORDER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "체결 통보된 주문이 존재하지 않습니다."),
     FILL_ACCOUNT_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "체결된 주문의 계좌가 존재하지 않습니다."),
+    FILL_ON_REJECTED_ORDER(HttpStatus.INTERNAL_SERVER_ERROR, "거절된 주문에 체결이 통보되었습니다."),
+    INVALID_ORDER_STATUS(HttpStatus.INTERNAL_SERVER_ERROR, "현재 주문 상태에서는 할 수 없는 변경입니다."),
 
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다.");
 

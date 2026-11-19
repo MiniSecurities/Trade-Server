@@ -4,7 +4,7 @@ import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
-import com.sangyunpark99.tradeserver.order.Order;
+import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,9 @@ public class OrderService {
 
     @Transactional
     public void applyFill(long orderId, long fillQuantity, BigDecimal fillPrice) {
+
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+
         Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.FILL_ACCOUNT_NOT_FOUND));
 
         order.applyFill(fillQuantity, fillPrice);
