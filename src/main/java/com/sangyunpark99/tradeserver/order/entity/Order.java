@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.order;
+package com.sangyunpark99.tradeserver.order.entity;
 
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;

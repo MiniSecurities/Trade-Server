@@ -3,6 +3,7 @@ package com.sangyunpark99.tradeserver.order;
 import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
+import com.sangyunpark99.tradeserver.order.entity.Order;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
