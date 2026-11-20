@@ -432,4 +432,21 @@ class OrderServiceTest {
             assertThat(account.getReservedBalance()).isEqualByComparingTo("0");
         }
     }
+
+    @Nested
+    @DisplayName("브로커 전송 시작")
+    class StartSending {
+
+        @Test
+        @DisplayName("주문 ID를 넘기면 트랜잭션 안에서 다시 조회해 SENDING이 DB에 저장된다")
+        void startSendingIsSaved() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+            orderService.startSending(orderId);
+
+            assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus())
+                    .isEqualTo(OrderStatus.SENDING);
+        }
+    }
 }
