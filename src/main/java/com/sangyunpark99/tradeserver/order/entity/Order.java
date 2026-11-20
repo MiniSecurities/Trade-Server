@@ -91,10 +91,13 @@ public class Order {
         }
     }
 
-    public void startSending() {
+    public boolean startSending() {
         if(this.orderStatus == OrderStatus.PENDING) {
             this.orderStatus = OrderStatus.SENDING;
+            return true;
         }
+
+        return false;
     }
 
     public void returnToPending() {
