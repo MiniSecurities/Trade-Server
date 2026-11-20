@@ -74,9 +74,9 @@ public class OrderService {
     }
 
     @Transactional
-    public void startSending(long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
-        order.startSending();
+    public boolean startSending(long orderId) {
+        Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
+        return order.startSending();
     }
 
     @Transactional

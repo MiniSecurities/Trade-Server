@@ -20,7 +20,12 @@ public class BrokerOrderSender {
         try {
             Order order = orderRepository.findById(orderId).orElseThrow();
 
-            orderService.startSending(orderId);
+            boolean claimed = orderService.startSending(orderId);
+
+            if(!claimed) {
+                log.info("이미 다른 곳에서 처리중 입니다. orderId={}", orderId);
+                return;
+            }
 
             BrokerResult result = brokerClient.sendOrder(new BrokerOrderRequest(
                     order.getId(), order.getSymbol(), order.getQuantity(), order.getLimitPrice()));
