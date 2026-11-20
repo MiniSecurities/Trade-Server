@@ -19,6 +19,9 @@ public class BrokerOrderSender {
     public void send(Long orderId) {
         try {
             Order order = orderRepository.findById(orderId).orElseThrow();
+
+            orderService.startSending(orderId);
+
             BrokerResult result = brokerClient.sendOrder(new BrokerOrderRequest(
                     order.getId(), order.getSymbol(), order.getQuantity(), order.getLimitPrice()));
 
@@ -26,7 +29,7 @@ public class BrokerOrderSender {
                 case ACCEPTED -> orderService.markAccepted(orderId);
                 case UNKNOWN -> orderService.markUnknown(orderId);
                 case REJECTED -> orderService.reject(orderId);
-                case NOT_DELIVERED -> log.warn("Broker Server에 전달하지 못해 PENDING으로 둠 orderId={}", orderId);
+                case NOT_DELIVERED -> orderService.returnToPending(orderId);
             }
         } catch (RuntimeException e) {
             log.error("브로커 주문 전달 처리 실패 orderId={}", orderId, e);
