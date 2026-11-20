@@ -14,3 +14,5 @@ broker:
   base-url: http://localhost:8081
   order-sending:
     enabled: true
+  resend:
+    enabled: true

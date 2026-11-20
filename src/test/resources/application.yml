@@ -11,3 +11,5 @@ broker:
   base-url: http://localhost:65535
   order-sending:
     enabled: false
+  resend:
+    enabled: false

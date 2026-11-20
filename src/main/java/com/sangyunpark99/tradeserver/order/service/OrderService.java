@@ -4,7 +4,7 @@ import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
-import com.sangyunpark99.tradeserver.order.broker.OrderPlacedEvent;
+import com.sangyunpark99.tradeserver.broker.OrderPlacedEvent;
 import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;

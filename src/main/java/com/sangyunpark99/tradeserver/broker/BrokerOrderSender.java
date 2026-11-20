@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.order.broker;
+package com.sangyunpark99.tradeserver.broker;
 
 import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;

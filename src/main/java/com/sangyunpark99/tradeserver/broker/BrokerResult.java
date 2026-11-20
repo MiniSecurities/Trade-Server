@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.order.broker;
+package com.sangyunpark99.tradeserver.broker;
 
 public enum BrokerResult {
     ACCEPTED, REJECTED,
