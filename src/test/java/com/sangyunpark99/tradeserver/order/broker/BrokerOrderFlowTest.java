@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -21,7 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.after;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
@@ -135,5 +135,22 @@ class BrokerOrderFlowTest {
         Thread.sleep(200);
         assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("2000");
+    }
+
+    @Test
+    @DisplayName("브로커를 호출하는 순간 주문은 이미 SENDING으로 저장돼 있다")
+    void orderIsSendingWhenBrokerIsCalled() {
+        AtomicReference<OrderStatus> statusAtCall = new AtomicReference<>();
+        given(brokerClient.sendOrder(any())).willAnswer(invocation -> {
+            BrokerOrderRequest request = invocation.getArgument(0);
+            statusAtCall.set(orderRepository.findById(request.orderId()).orElseThrow().getOrderStatus());
+            return BrokerResult.ACCEPTED;
+        });
+        Long accountId = createAccount("10000");
+
+        orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+        verify(brokerClient, timeout(5_000)).sendOrder(any());
+        assertThat(statusAtCall.get()).isEqualTo(OrderStatus.SENDING);
     }
 }

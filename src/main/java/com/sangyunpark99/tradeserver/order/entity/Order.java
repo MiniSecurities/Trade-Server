@@ -67,13 +67,13 @@ public class Order {
     }
 
     public void markUnknown() {
-        if(this.orderStatus == OrderStatus.PENDING) {
+        if(this.orderStatus == OrderStatus.PENDING || this.orderStatus == OrderStatus.SENDING) {
             this.orderStatus = OrderStatus.UNKNOWN;
         }
     }
 
     public void reject() {
-        if(this.orderStatus == OrderStatus.PENDING || this.orderStatus == OrderStatus.UNKNOWN) {
+        if(this.orderStatus == OrderStatus.PENDING || this.orderStatus == OrderStatus.UNKNOWN || this.orderStatus == OrderStatus.SENDING) {
             this.orderStatus = OrderStatus.REJECTED;
             return;
         }
@@ -86,8 +86,20 @@ public class Order {
             throw new TradeException(ErrorCode.INVALID_ORDER_STATUS);
         }
 
-        if(this.orderStatus == OrderStatus.PENDING || this.orderStatus == OrderStatus.UNKNOWN) {
+        if(this.orderStatus == OrderStatus.PENDING || this.orderStatus == OrderStatus.UNKNOWN || this.orderStatus == OrderStatus.SENDING) {
             this.orderStatus = OrderStatus.ACCEPTED;
+        }
+    }
+
+    public void startSending() {
+        if(this.orderStatus == OrderStatus.PENDING) {
+            this.orderStatus = OrderStatus.SENDING;
+        }
+    }
+
+    public void returnToPending() {
+        if(this.orderStatus == OrderStatus.SENDING) {
+            this.orderStatus = OrderStatus.PENDING;
         }
     }
 

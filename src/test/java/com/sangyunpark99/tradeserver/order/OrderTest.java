@@ -464,4 +464,116 @@ class OrderTest {
             assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.REJECTED);
         }
     }
+
+    @Nested
+    @DisplayName("브로커 전송 상태 (SENDING)")
+    class Sending {
+
+        private Order sendingOrder() {
+            Order order = order(10, "200");
+            order.startSending();
+            return order;
+        }
+
+        @Test
+        @DisplayName("PENDING 주문을 전송 시작하면 SENDING이다")
+        void pendingToSending() {
+            assertThat(sendingOrder().getOrderStatus()).isEqualTo(OrderStatus.SENDING);
+        }
+
+        @Test
+        @DisplayName("이미 ACCEPTED인 주문은 전송 시작해도 그대로다")
+        void acceptedStaysOnSend() {
+            Order order = sendingOrder();
+            order.accept();
+
+            order.startSending();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("이미 체결이 들어온 주문은 전송 시작해도 그대로다")
+        void partiallyFilledStaysOnSend() {
+            Order order = sendingOrder();
+            order.applyFill(3, new BigDecimal("198"));
+
+            order.startSending();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+
+        @Test
+        @DisplayName("SENDING 주문을 되돌리면 PENDING이다 (연결 실패)")
+        void sendingToPending() {
+            Order order = sendingOrder();
+
+            order.returnToPending();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("체결된 주문은 되돌려도 PENDING으로 돌아가지 않는다")
+        void filledDoesNotReturnToPending() {
+            Order order = sendingOrder();
+            order.applyFill(10, new BigDecimal("198"));
+
+            order.returnToPending();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.FILLED);
+        }
+
+        @Test
+        @DisplayName("ACCEPTED 주문은 되돌려도 PENDING으로 돌아가지 않는다")
+        void acceptedDoesNotReturnToPending() {
+            Order order = sendingOrder();
+            order.accept();
+
+            order.returnToPending();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("SENDING 주문이 접수 확인을 받으면 ACCEPTED다")
+        void sendingToAccepted() {
+            Order order = sendingOrder();
+
+            order.accept();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("SENDING 주문의 결과를 모르면 UNKNOWN이다")
+        void sendingToUnknown() {
+            Order order = sendingOrder();
+
+            order.markUnknown();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.UNKNOWN);
+        }
+
+        @Test
+        @DisplayName("SENDING 주문이 거절되면 REJECTED다")
+        void sendingToRejected() {
+            Order order = sendingOrder();
+
+            order.reject();
+
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.REJECTED);
+        }
+
+        @Test
+        @DisplayName("SENDING 중에 체결이 먼저 오면 반영되고 PARTIALLY_FILLED다")
+        void fillWhileSending() {
+            Order order = sendingOrder();
+
+            order.applyFill(3, new BigDecimal("198"));
+
+            assertThat(order.getFilledQuantity()).isEqualTo(3);
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+        }
+    }
 }
