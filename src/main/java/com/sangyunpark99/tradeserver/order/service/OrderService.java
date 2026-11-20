@@ -72,4 +72,16 @@ public class OrderService {
         order.reject();
         account.release(order.getRemainingAmount());
     }
+
+    @Transactional
+    public void startSending(long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
+        order.startSending();
+    }
+
+    @Transactional
+    public void returnToPending(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
+        order.returnToPending();
+    }
 }
