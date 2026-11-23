@@ -24,6 +24,9 @@ public class Account {
     @Column(precision = 19, scale = 4)
     private BigDecimal reservedBalance;
 
+    @Version
+    private int version;
+
     public Account(BigDecimal balance) {
         checkNotNegative(balance);
         this.balance = balance;
