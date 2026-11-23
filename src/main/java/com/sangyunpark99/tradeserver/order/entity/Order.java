@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Entity
 @Getter
@@ -150,5 +151,12 @@ public class Order {
         if(this.orderStatus == OrderStatus.REJECTED) {
             throw new TradeException(ErrorCode.FILL_ON_REJECTED_ORDER);
         }
+    }
+
+    public BigDecimal getAveragePrice() {
+        if(filledQuantity == 0) {
+            return null;
+        }
+        return filledAmount.divide(BigDecimal.valueOf(filledQuantity), 4, RoundingMode.HALF_UP);
     }
 }

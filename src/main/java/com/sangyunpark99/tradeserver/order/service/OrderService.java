@@ -8,6 +8,7 @@ import com.sangyunpark99.tradeserver.broker.OrderPlacedEvent;
 import com.sangyunpark99.tradeserver.fill.Fill;
 import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
 import com.sangyunpark99.tradeserver.order.entity.Order;
+import com.sangyunpark99.tradeserver.order.controller.dto.OrderDetailResponse;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -96,5 +98,12 @@ public class OrderService {
     public void returnToPending(Long orderId) {
         Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
         order.returnToPending();
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDetailResponse getOrder(long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
+        List<Fill> fills = fillRepository.findByOrderIdOrderByIdAsc(orderId);
+        return OrderDetailResponse.of(order, fills);
     }
 }
