@@ -40,7 +40,7 @@ public class OrderService {
     @Transactional
     public void applyFill(long orderId, long fillQuantity, BigDecimal fillPrice) {
 
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+        Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
 
         Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.FILL_ACCOUNT_NOT_FOUND));
 
@@ -54,7 +54,7 @@ public class OrderService {
 
     @Transactional
     public void reject(long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+        Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
         Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.FILL_ACCOUNT_NOT_FOUND));
 
         order.reject();
@@ -63,13 +63,13 @@ public class OrderService {
 
     @Transactional
     public void markAccepted(long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+        Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
         order.accept();
     }
 
     @Transactional
     public void markUnknown(long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+        Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
         order.markUnknown();
     }
 
@@ -81,7 +81,7 @@ public class OrderService {
 
     @Transactional
     public void returnToPending(Long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
+        Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
         order.returnToPending();
     }
 }
