@@ -5,21 +5,26 @@ import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
 import com.sangyunpark99.tradeserver.broker.OrderPlacedEvent;
+import com.sangyunpark99.tradeserver.fill.Fill;
+import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
 import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
 
     private final AccountRepository accountRepository;
     private final OrderRepository orderRepository;
+    private final FillRepository fillRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
@@ -38,9 +43,17 @@ public class OrderService {
     }
 
     @Transactional
-    public void applyFill(long orderId, long fillQuantity, BigDecimal fillPrice) {
+    public void applyFill(String fillId, long orderId, long fillQuantity, BigDecimal fillPrice) {
 
         Order order = orderRepository.findWithLockById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+
+        if(fillRepository.existsByFillId(fillId)) {
+            log.info("중복 체결 통보 fillId={} orderId={}", fillId, orderId);
+            return;
+        }
+
+        Fill fill = new Fill(orderId, fillPrice, fillQuantity, fillId);
+        fillRepository.save(fill);
 
         Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.FILL_ACCOUNT_NOT_FOUND));
 
