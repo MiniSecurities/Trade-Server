@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.order.service;
 
+import java.util.UUID;
+import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
 import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
@@ -31,10 +33,18 @@ class OrderServiceTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private FillRepository fillRepository;
+
     @AfterEach
     void tearDown() {
+        fillRepository.deleteAll();
         orderRepository.deleteAll();
         accountRepository.deleteAll();
+    }
+
+    private static String fillId() {
+        return UUID.randomUUID().toString();
     }
 
     private Long createAccount(String balance) {
@@ -172,12 +182,46 @@ class OrderServiceTest {
     class ApplyFill {
 
         @Test
+        @DisplayName("체결이 반영되면 체결 내역이 저장된다")
+        void savesFillHistory() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+            orderService.applyFill("fill-1", orderId, 3, new BigDecimal("198"));
+
+            assertThat(fillRepository.findAll()).singleElement().satisfies(fill -> {
+                assertThat(fill.getFillId()).isEqualTo("fill-1");
+                assertThat(fill.getOrderId()).isEqualTo(orderId);
+                assertThat(fill.getQuantity()).isEqualTo(3);
+                assertThat(fill.getPrice()).isEqualByComparingTo("198");
+            });
+        }
+
+        @Test
+        @DisplayName("같은 체결 ID가 다시 오면 무시하고 한 번만 반영한다")
+        void ignoresDuplicateFillId() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+
+            orderService.applyFill("fill-1", orderId, 3, new BigDecimal("198"));
+            orderService.applyFill("fill-1", orderId, 3, new BigDecimal("198"));
+
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getBalance()).isEqualByComparingTo("9406");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("1406");
+
+            Order order = orderRepository.findById(orderId).orElseThrow();
+            assertThat(order.getFilledQuantity()).isEqualTo(3);
+            assertThat(fillRepository.count()).isEqualTo(1);
+        }
+
+        @Test
         @DisplayName("부분 체결이면 체결 금액만 현금과 묶인 돈에서 빠지고 나머지는 묶여 있다")
         void partialFill() {
             Long accountId = createAccount("10000");
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
 
-            orderService.applyFill(orderId, 3, new BigDecimal("198"));
+            orderService.applyFill(fillId(), orderId, 3, new BigDecimal("198"));
 
             Account account = accountRepository.findById(accountId).orElseThrow();
             assertThat(account.getBalance()).isEqualByComparingTo("9406");
@@ -196,9 +240,9 @@ class OrderServiceTest {
             Long accountId = createAccount("10000");
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
 
-            orderService.applyFill(orderId, 3, new BigDecimal("198"));
-            orderService.applyFill(orderId, 5, new BigDecimal("199"));
-            orderService.applyFill(orderId, 2, new BigDecimal("200"));
+            orderService.applyFill(fillId(), orderId, 3, new BigDecimal("198"));
+            orderService.applyFill(fillId(), orderId, 5, new BigDecimal("199"));
+            orderService.applyFill(fillId(), orderId, 2, new BigDecimal("200"));
 
             Account account = accountRepository.findById(accountId).orElseThrow();
             assertThat(account.getBalance()).isEqualByComparingTo("8011");
@@ -216,7 +260,7 @@ class OrderServiceTest {
             Long accountId = createAccount("10000");
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
 
-            orderService.applyFill(orderId, 10, new BigDecimal("200"));
+            orderService.applyFill(fillId(), orderId, 10, new BigDecimal("200"));
 
             Account account = accountRepository.findById(accountId).orElseThrow();
             assertThat(account.getBalance()).isEqualByComparingTo("8000");
@@ -233,7 +277,7 @@ class OrderServiceTest {
             Long orderA = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
             orderService.placeOrder(accountId, "AAPL", 5, new BigDecimal("1000"));
 
-            orderService.applyFill(orderA, 10, new BigDecimal("190"));
+            orderService.applyFill(fillId(), orderA, 10, new BigDecimal("190"));
 
             Account account = accountRepository.findById(accountId).orElseThrow();
             assertThat(account.getBalance()).isEqualByComparingTo("8100");
@@ -244,7 +288,7 @@ class OrderServiceTest {
         @DisplayName("브로커가 없는 주문으로 체결을 통보하면 FILL_ORDER_NOT_FOUND로 거절된다")
         void rejectsWhenOrderNotFound() {
             assertTradeException(
-                    () -> orderService.applyFill(999_999L, 1, new BigDecimal("200")),
+                    () -> orderService.applyFill(fillId(), 999_999L, 1, new BigDecimal("200")),
                     ErrorCode.FILL_ORDER_NOT_FOUND);
         }
 
@@ -255,7 +299,7 @@ class OrderServiceTest {
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
 
             assertTradeException(
-                    () -> orderService.applyFill(orderId, 3, new BigDecimal("201")),
+                    () -> orderService.applyFill(fillId(), orderId, 3, new BigDecimal("201")),
                     ErrorCode.FILL_PRICE_EXCEEDS_LIMIT);
 
             assertUnchanged(accountId, orderId);
@@ -268,7 +312,7 @@ class OrderServiceTest {
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
 
             assertTradeException(
-                    () -> orderService.applyFill(orderId, 11, new BigDecimal("200")),
+                    () -> orderService.applyFill(fillId(), orderId, 11, new BigDecimal("200")),
                     ErrorCode.OVERFILL);
 
             assertUnchanged(accountId, orderId);
@@ -279,10 +323,10 @@ class OrderServiceTest {
         void rejectsFillAfterCompleted() {
             Long accountId = createAccount("10000");
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
-            orderService.applyFill(orderId, 10, new BigDecimal("190"));
+            orderService.applyFill(fillId(), orderId, 10, new BigDecimal("190"));
 
             assertTradeException(
-                    () -> orderService.applyFill(orderId, 1, new BigDecimal("190")),
+                    () -> orderService.applyFill(fillId(), orderId, 1, new BigDecimal("190")),
                     ErrorCode.OVERFILL);
 
             Account account = accountRepository.findById(accountId).orElseThrow();
@@ -312,10 +356,10 @@ class OrderServiceTest {
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
             assertThat(statusOf(orderId)).isEqualTo(OrderStatus.PENDING);
 
-            orderService.applyFill(orderId, 3, new BigDecimal("198"));
+            orderService.applyFill(fillId(), orderId, 3, new BigDecimal("198"));
             assertThat(statusOf(orderId)).isEqualTo(OrderStatus.PARTIALLY_FILLED);
 
-            orderService.applyFill(orderId, 7, new BigDecimal("199"));
+            orderService.applyFill(fillId(), orderId, 7, new BigDecimal("199"));
             assertThat(statusOf(orderId)).isEqualTo(OrderStatus.FILLED);
         }
 
@@ -397,7 +441,7 @@ class OrderServiceTest {
         void rejectAfterFillRollsBack() {
             Long accountId = createAccount("10000");
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
-            orderService.applyFill(orderId, 3, new BigDecimal("198"));
+            orderService.applyFill(fillId(), orderId, 3, new BigDecimal("198"));
 
             assertTradeException(() -> orderService.reject(orderId), ErrorCode.INVALID_ORDER_STATUS);
 
@@ -410,7 +454,7 @@ class OrderServiceTest {
         void acceptAfterFillKeepsStatus() {
             Long accountId = createAccount("10000");
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
-            orderService.applyFill(orderId, 3, new BigDecimal("198"));
+            orderService.applyFill(fillId(), orderId, 3, new BigDecimal("198"));
 
             orderService.markAccepted(orderId);
 
@@ -424,7 +468,7 @@ class OrderServiceTest {
             Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
             orderService.reject(orderId);
 
-            assertTradeException(() -> orderService.applyFill(orderId, 3, new BigDecimal("198")),
+            assertTradeException(() -> orderService.applyFill(fillId(), orderId, 3, new BigDecimal("198")),
                     ErrorCode.FILL_ON_REJECTED_ORDER);
 
             Account account = accountRepository.findById(accountId).orElseThrow();
