@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.order.service;
 
+import java.util.UUID;
+import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
 import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.order.entity.Order;
@@ -45,10 +47,14 @@ class OrderLockTest {
     private OrderRepository orderRepository;
 
     @Autowired
+    private FillRepository fillRepository;
+
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     @AfterEach
     void tearDown() {
+        fillRepository.deleteAll();
         orderRepository.deleteAll();
         accountRepository.deleteAll();
     }
@@ -73,7 +79,7 @@ class OrderLockTest {
             }));
             locked.await();
 
-            Future<?> fill = pool.submit(() -> orderFacade.applyFill(orderId, FILL_QUANTITY, PRICE));
+            Future<?> fill = pool.submit(() -> orderFacade.applyFill(UUID.randomUUID().toString(), orderId, FILL_QUANTITY, PRICE));
 
             assertThatThrownBy(() -> fill.get(500, TimeUnit.MILLISECONDS))
                     .as("접수 확인이 잠금을 쥐고 있는 동안 체결 반영은 끝나면 안 된다")
