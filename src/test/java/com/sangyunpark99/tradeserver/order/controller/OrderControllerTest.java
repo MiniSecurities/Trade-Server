@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -340,6 +341,55 @@ class OrderControllerTest {
             applyFill(fillBody(orderId, 11, "199"))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.code").value("OVERFILL"));
+        }
+    }
+
+    @Nested
+    @DisplayName("주문 상세 조회")
+    class GetOrder {
+
+        @Test
+        @DisplayName("주문 정보, 평균 체결가, 체결 내역을 체결 순서대로 돌려준다")
+        void returnsOrderWithFills() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+            applyFill(fillBody("fill-1", orderId, 3, "197.42")).andExpect(status().isNoContent());
+            applyFill(fillBody("fill-2", orderId, 2, "199")).andExpect(status().isNoContent());
+
+            mockMvc.perform(get("/api/orders/{orderId}", orderId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.orderId").value(orderId))
+                    .andExpect(jsonPath("$.symbol").value("AAPL"))
+                    .andExpect(jsonPath("$.quantity").value(10))
+                    .andExpect(jsonPath("$.status").value("PARTIALLY_FILLED"))
+                    .andExpect(jsonPath("$.filledQuantity").value(5))
+                    .andExpect(jsonPath("$.averagePrice").value(198.052))
+                    .andExpect(jsonPath("$.fills.length()").value(2))
+                    .andExpect(jsonPath("$.fills[0].fillId").value("fill-1"))
+                    .andExpect(jsonPath("$.fills[0].quantity").value(3))
+                    .andExpect(jsonPath("$.fills[1].fillId").value("fill-2"))
+                    .andExpect(jsonPath("$.fills[1].filledAt").value(notNullValue()));
+        }
+
+        @Test
+        @DisplayName("체결이 없으면 평균 체결가는 null이고 체결 내역은 비어 있다")
+        void noFills() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+
+            mockMvc.perform(get("/api/orders/{orderId}", orderId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.filledQuantity").value(0))
+                    .andExpect(jsonPath("$.averagePrice").value(nullValue()))
+                    .andExpect(jsonPath("$.fills").isEmpty());
+        }
+
+        @Test
+        @DisplayName("없는 주문이면 404")
+        void notFound() throws Exception {
+            mockMvc.perform(get("/api/orders/{orderId}", 999_999))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("NOT_FOUND_ORDER"));
         }
     }
 }
