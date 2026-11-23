@@ -19,8 +19,8 @@ public class OrderFacade {
         return orderService.placeOrder(accountId, symbol, quantity, limitPrice);
     }
 
-    public void applyFill(long orderId, long fillQuantity, BigDecimal fillPrice){
-        orderService.applyFill(orderId, fillQuantity, fillPrice);
+    public void applyFill(String fillId, long orderId, long fillQuantity, BigDecimal fillPrice){
+        orderService.applyFill(fillId, orderId, fillQuantity, fillPrice);
     }
 
     public void reject(long orderId) {

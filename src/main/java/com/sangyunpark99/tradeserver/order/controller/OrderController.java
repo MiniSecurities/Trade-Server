@@ -26,7 +26,7 @@ public class OrderController {
 
    @PostMapping("/api/fills")
    public ResponseEntity<Void> applyFill(@Validated @RequestBody FillRequest request) {
-        orderFacade.applyFill(request.orderId(), request.fillQuantity(), request.fillPrice());
+        orderFacade.applyFill(request.fillId(), request.orderId(), request.fillQuantity(), request.fillPrice());
         return ResponseEntity.noContent().build();
    }
 }

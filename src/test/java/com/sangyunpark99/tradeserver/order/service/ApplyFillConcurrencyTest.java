@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.order.service;
 
+import java.util.UUID;
+import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
 import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.order.facade.OrderFacade;
@@ -39,8 +41,12 @@ class ApplyFillConcurrencyTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private FillRepository fillRepository;
+
     @AfterEach
     void tearDown() {
+        fillRepository.deleteAll();
         orderRepository.deleteAll();
         accountRepository.deleteAll();
     }
@@ -94,7 +100,7 @@ class ApplyFillConcurrencyTest {
             Thread.currentThread().interrupt();
             return;
         }
-        orderFacade.applyFill(orderId, quantity, PRICE);
+        orderFacade.applyFill(UUID.randomUUID().toString(), orderId, quantity, PRICE);
     }
 
     private int waitFor(Future<?> future) throws Exception {
