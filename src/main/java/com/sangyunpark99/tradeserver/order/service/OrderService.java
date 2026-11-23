@@ -53,6 +53,15 @@ public class OrderService {
     }
 
     @Transactional
+    public void reject(long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
+        Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.FILL_ACCOUNT_NOT_FOUND));
+
+        order.reject();
+        account.release(order.getRemainingAmount());
+    }
+
+    @Transactional
     public void markAccepted(long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
         order.accept();
@@ -62,15 +71,6 @@ public class OrderService {
     public void markUnknown(long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
         order.markUnknown();
-    }
-
-    @Transactional
-    public void reject(long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.FILL_ORDER_NOT_FOUND));
-        Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.FILL_ACCOUNT_NOT_FOUND));
-
-        order.reject();
-        account.release(order.getRemainingAmount());
     }
 
     @Transactional
