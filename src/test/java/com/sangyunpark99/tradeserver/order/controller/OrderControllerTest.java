@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.order.controller;
 
+import java.util.UUID;
+import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
 import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.order.entity.Order;
@@ -38,8 +40,12 @@ class OrderControllerTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private FillRepository fillRepository;
+
     @AfterEach
     void tearDown() {
+        fillRepository.deleteAll();
         orderRepository.deleteAll();
         accountRepository.deleteAll();
     }
@@ -219,9 +225,13 @@ class OrderControllerTest {
     }
 
     private String fillBody(Object orderId, Object fillQuantity, Object fillPrice) {
+        return fillBody(UUID.randomUUID().toString(), orderId, fillQuantity, fillPrice);
+    }
+
+    private String fillBody(String fillId, Object orderId, Object fillQuantity, Object fillPrice) {
         return """
-                {"orderId": %s, "fillQuantity": %s, "fillPrice": %s}
-                """.formatted(orderId, fillQuantity, fillPrice);
+                {"fillId": "%s", "orderId": %s, "fillQuantity": %s, "fillPrice": %s}
+                """.formatted(fillId, orderId, fillQuantity, fillPrice);
     }
 
     @Nested
@@ -262,10 +272,35 @@ class OrderControllerTest {
         }
 
         @Test
+        @DisplayName("같은 체결 ID가 두 번 오면 둘 다 204를 돌려주고 한 번만 반영한다")
+        void duplicateFillIdReturnsNoContentAndAppliesOnce() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+
+            applyFill(fillBody("fill-1", orderId, 3, "197.42")).andExpect(status().isNoContent());
+            applyFill(fillBody("fill-1", orderId, 3, "197.42")).andExpect(status().isNoContent());
+
+            Account account = accountRepository.findById(accountId).orElseThrow();
+            assertThat(account.getBalance()).isEqualByComparingTo("9407.74");
+            assertThat(orderRepository.findById(orderId).orElseThrow().getFilledQuantity()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("체결 ID가 없으면 400")
+        void missingFillId() throws Exception {
+            applyFill("""
+                    {"orderId": 1, "fillQuantity": 3, "fillPrice": 197.42}
+                    """)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                    .andExpect(jsonPath("$.message").value(containsString("fillId")));
+        }
+
+        @Test
         @DisplayName("체결가가 없으면 400")
         void missingFillPrice() throws Exception {
             applyFill("""
-                    {"orderId": 1, "fillQuantity": 3}
+                    {"fillId": "fill-1", "orderId": 1, "fillQuantity": 3}
                     """)
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
