@@ -1,6 +1,7 @@
 package com.sangyunpark99.tradeserver.broker;
 
 import com.sangyunpark99.tradeserver.order.entity.Order;
+import com.sangyunpark99.tradeserver.order.facade.OrderFacade;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
 import com.sangyunpark99.tradeserver.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ public class BrokerOrderSender {
 
     private final OrderRepository orderRepository;
     private final BrokerClient brokerClient;
+    private final OrderFacade orderFacade;
     private final OrderService orderService;
 
     public void send(Long orderId) {
@@ -33,7 +35,7 @@ public class BrokerOrderSender {
             switch (result) {
                 case ACCEPTED -> orderService.markAccepted(orderId);
                 case UNKNOWN -> orderService.markUnknown(orderId);
-                case REJECTED -> orderService.reject(orderId);
+                case REJECTED -> orderFacade.reject(orderId);
                 case NOT_DELIVERED -> orderService.returnToPending(orderId);
             }
         } catch (RuntimeException e) {
