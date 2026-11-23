@@ -6,6 +6,7 @@ import com.sangyunpark99.tradeserver.account.Account;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
+import com.sangyunpark99.tradeserver.order.controller.dto.OrderDetailResponse;
 import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.entity.OrderStatus;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
@@ -491,6 +492,48 @@ class OrderServiceTest {
 
             assertThat(orderRepository.findById(orderId).orElseThrow().getOrderStatus())
                     .isEqualTo(OrderStatus.SENDING);
+        }
+    }
+
+    @Nested
+    @DisplayName("주문 상세 조회")
+    class GetOrder {
+
+        @Test
+        @DisplayName("주문 정보와 평균 체결가, 체결 내역을 체결 순서대로 돌려준다")
+        void returnsOrderWithFills() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            orderService.applyFill("fill-1", orderId, 3, new BigDecimal("198"));
+            orderService.applyFill("fill-2", orderId, 2, new BigDecimal("200"));
+
+            OrderDetailResponse response = orderService.getOrder(orderId);
+
+            assertThat(response.orderId()).isEqualTo(orderId);
+            assertThat(response.status()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+            assertThat(response.filledQuantity()).isEqualTo(5);
+            assertThat(response.filledAmount()).isEqualByComparingTo("994");
+            assertThat(response.averagePrice()).isEqualByComparingTo("198.8");
+            assertThat(response.fills()).extracting("fillId").containsExactly("fill-1", "fill-2");
+        }
+
+        @Test
+        @DisplayName("다른 주문의 체결 내역은 섞이지 않는다")
+        void onlyOwnFills() {
+            Long accountId = createAccount("10000");
+            Long orderA = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            Long orderB = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+            orderService.applyFill("fill-a", orderA, 3, new BigDecimal("198"));
+            orderService.applyFill("fill-b", orderB, 2, new BigDecimal("199"));
+
+            assertThat(orderService.getOrder(orderA).fills()).extracting("fillId").containsExactly("fill-a");
+            assertThat(orderService.getOrder(orderB).fills()).extracting("fillId").containsExactly("fill-b");
+        }
+
+        @Test
+        @DisplayName("없는 주문이면 NOT_FOUND_ORDER")
+        void notFound() {
+            assertTradeException(() -> orderService.getOrder(999_999L), ErrorCode.NOT_FOUND_ORDER);
         }
     }
 }
