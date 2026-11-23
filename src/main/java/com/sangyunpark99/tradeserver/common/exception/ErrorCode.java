@@ -21,6 +21,7 @@ public enum ErrorCode {
     INVALID_FILL_PRICE(HttpStatus.INTERNAL_SERVER_ERROR, "체결가는 0보다 커야 합니다."),
     FILL_PRICE_EXCEEDS_LIMIT(HttpStatus.INTERNAL_SERVER_ERROR, "체결가가 지정가보다 높습니다."),
     OVERFILL(HttpStatus.INTERNAL_SERVER_ERROR, "누적 체결 수량이 주문 수량을 넘습니다."),
+    INVALID_FILL_ID(HttpStatus.INTERNAL_SERVER_ERROR, "체결 ID가 필요합니다."),
 
     NOT_FOUND_ACCOUNT(HttpStatus.NOT_FOUND, "계좌가 존재하지 않습니다."),
     NOT_FOUND_ORDER(HttpStatus.NOT_FOUND, "주문이 존재하지 않습니다."),
