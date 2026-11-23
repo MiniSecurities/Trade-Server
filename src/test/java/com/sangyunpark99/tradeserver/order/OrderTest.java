@@ -576,4 +576,35 @@ class OrderTest {
             assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
         }
     }
+
+    @Nested
+    @DisplayName("평균 체결가")
+    class AveragePrice {
+
+        @Test
+        @DisplayName("체결이 없으면 평균 체결가는 null이다")
+        void nullWhenNoFill() {
+            assertThat(order(10, "200").getAveragePrice()).isNull();
+        }
+
+        @Test
+        @DisplayName("평균 체결가는 누적 체결 금액 ÷ 누적 체결 수량이다")
+        void averageOfFills() {
+            Order order = order(10, "200");
+            order.applyFill(3, new BigDecimal("198"));
+            order.applyFill(2, new BigDecimal("200"));
+
+            assertThat(order.getAveragePrice()).isEqualByComparingTo("198.8");
+        }
+
+        @Test
+        @DisplayName("나누어떨어지지 않으면 소수 넷째 자리에서 반올림한다")
+        void roundsToFourDecimals() {
+            Order order = order(3, "101");
+            order.applyFill(1, new BigDecimal("100"));
+            order.applyFill(2, new BigDecimal("101"));
+
+            assertThat(order.getAveragePrice()).isEqualByComparingTo("100.6667");
+        }
+    }
 }
