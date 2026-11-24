@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.user.service;
+package com.sangyunpark99.tradeserver.auth.service;
 
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -25,9 +25,7 @@ public class UserService {
         }
 
         String passwordHash = passwordEncoder.encode(password);
-
         User user = new User(email, name, passwordHash);
-
 
         User savedUser;
 

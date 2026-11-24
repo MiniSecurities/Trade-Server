@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.user.controller;
+package com.sangyunpark99.tradeserver.auth.controller;
 
 import com.sangyunpark99.tradeserver.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class UserControllerTest {
+class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -34,7 +34,7 @@ class UserControllerTest {
     }
 
     private ResultActions signUp(String body) throws Exception {
-        return mockMvc.perform(post("/api/users")
+        return mockMvc.perform(post("/api/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
     }

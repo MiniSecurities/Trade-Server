@@ -1,8 +1,8 @@
-package com.sangyunpark99.tradeserver.user.controller;
+package com.sangyunpark99.tradeserver.auth.controller;
 
-import com.sangyunpark99.tradeserver.user.controller.dto.SignUpRequest;
-import com.sangyunpark99.tradeserver.user.controller.dto.SignUpResponse;
-import com.sangyunpark99.tradeserver.user.service.UserService;
+import com.sangyunpark99.tradeserver.auth.controller.dto.SignUpRequest;
+import com.sangyunpark99.tradeserver.auth.controller.dto.SignUpResponse;
+import com.sangyunpark99.tradeserver.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,15 +13,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class UserController {
+public class AuthController {
 
-    private final UserService userService;
+    private final AuthService authService;
 
-    @PostMapping
+    @PostMapping("/signup")
     public ResponseEntity<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
-        Long userId = userService.signUp(request.email(), request.name(), request.password());
+        Long userId = authService.signUp(request.email(), request.name(), request.password());
         return ResponseEntity.status(HttpStatus.CREATED).body(new SignUpResponse(userId));
     }
 }
