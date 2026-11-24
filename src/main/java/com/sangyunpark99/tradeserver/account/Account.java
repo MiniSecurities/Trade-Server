@@ -18,6 +18,9 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private long userId;
+
     @Column(precision = 19, scale = 4)
     private BigDecimal balance;
 
@@ -27,9 +30,10 @@ public class Account {
     @Version
     private int version;
 
-    public Account(BigDecimal balance) {
+    public Account(long userId, BigDecimal balance) {
         checkNotNegative(balance);
         this.balance = balance;
+        this.userId = userId;
         this.reservedBalance = BigDecimal.ZERO;
     }
 
@@ -54,6 +58,10 @@ public class Account {
 
     public BigDecimal getAvailableBalance() {
         return this.balance.subtract(this.reservedBalance);
+    }
+
+    public boolean isOwnedBy(long userId) {
+        return this.userId == userId;
     }
 
     private void checkNotNegative(BigDecimal amount) {

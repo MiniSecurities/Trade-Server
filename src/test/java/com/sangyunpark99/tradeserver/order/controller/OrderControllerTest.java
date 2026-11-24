@@ -57,11 +57,15 @@ class OrderControllerTest {
     }
 
     private Long createAccount(String balance) {
-        return accountRepository.save(new Account(new BigDecimal(balance))).getId();
+        return accountRepository.save(new Account(1L, new BigDecimal(balance))).getId();
     }
 
     private String bearer() {
-        return "Bearer " + jwtProvider.createAccessToken(1L);
+        return bearer(1L);
+    }
+
+    private String bearer(long userId) {
+        return "Bearer " + jwtProvider.createAccessToken(userId);
     }
 
     private ResultActions placeOrder(String body) throws Exception {
@@ -199,6 +203,31 @@ class OrderControllerTest {
         @DisplayName("없는 계좌면 404")
         void accountNotFound() throws Exception {
             placeOrder(body(999_999, "\"AAPL\"", 10, 200))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("NOT_FOUND_ACCOUNT"));
+        }
+    }
+
+    @Nested
+    @DisplayName("계좌 주인 확인")
+    class AccountOwner {
+
+        @Test
+        @DisplayName("다른 사용자의 계좌로 주문하면 없는 계좌와 같은 404")
+        void othersAccountIsNotFound() throws Exception {
+            Long accountId = createAccount("10000");
+
+            mockMvc.perform(post("/api/orders")
+                            .header(HttpHeaders.AUTHORIZATION, bearer(2L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body(accountId, "\"AAPL\"", 10, 200)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("NOT_FOUND_ACCOUNT"));
+
+            mockMvc.perform(post("/api/orders")
+                            .header(HttpHeaders.AUTHORIZATION, bearer(2L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body(999_999, "\"AAPL\"", 10, 200)))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("NOT_FOUND_ACCOUNT"));
         }

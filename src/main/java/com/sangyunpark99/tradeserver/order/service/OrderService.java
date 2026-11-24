@@ -30,9 +30,14 @@ public class OrderService {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
-    public Long placeOrder(long accountId, String symbol, long quantity, BigDecimal limitPrice) {
+    public Long placeOrder(long userId, long accountId, String symbol, long quantity, BigDecimal limitPrice) {
 
         Account account = accountRepository.findById(accountId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ACCOUNT));
+
+        if(!account.isOwnedBy(userId)) {
+            throw new TradeException(ErrorCode.NOT_FOUND_ACCOUNT);
+        }
+
         Order order = new Order(accountId, symbol, quantity, limitPrice);
 
         BigDecimal orderAmount = order.getOrderAmount();

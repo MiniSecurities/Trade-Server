@@ -43,10 +43,10 @@ class StartSendingConcurrencyTest {
     @Test
     @DisplayName("두 스레드가 같은 주문을 동시에 선점해도 한쪽만 성공한다")
     void onlyOneThreadClaims() throws Exception {
-        Long accountId = accountRepository.save(new Account(new BigDecimal("100000000"))).getId();
+        Long accountId = accountRepository.save(new Account(1L, new BigDecimal("100000000"))).getId();
         List<Long> orderIds = new ArrayList<>();
         for (int i = 0; i < ORDER_COUNT; i++) {
-            orderIds.add(orderService.placeOrder(accountId, "AAPL", 1, new BigDecimal("100")));
+            orderIds.add(orderService.placeOrder(1L, accountId, "AAPL", 1, new BigDecimal("100")));
         }
 
         ExecutorService pool = Executors.newFixedThreadPool(2);

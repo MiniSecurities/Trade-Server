@@ -53,11 +53,11 @@ class PendingOrderResendSchedulerTest {
     }
 
     private Long createAccount() {
-        return accountRepository.save(new Account(new BigDecimal("1000000"))).getId();
+        return accountRepository.save(new Account(1L, new BigDecimal("1000000"))).getId();
     }
 
     private Long placeOrder(Long accountId) {
-        return orderService.placeOrder(accountId, "AAPL", 1, new BigDecimal("100"));
+        return orderService.placeOrder(1L, accountId, "AAPL", 1, new BigDecimal("100"));
     }
 
     private OrderStatus statusOf(Long orderId) {

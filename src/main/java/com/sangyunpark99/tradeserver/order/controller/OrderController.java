@@ -1,5 +1,6 @@
 package com.sangyunpark99.tradeserver.order.controller;
 
+import com.sangyunpark99.tradeserver.auth.UserContext;
 import com.sangyunpark99.tradeserver.order.controller.dto.FillRequest;
 import com.sangyunpark99.tradeserver.order.controller.dto.OrderDetailResponse;
 import com.sangyunpark99.tradeserver.order.controller.dto.PlaceOrderRequest;
@@ -25,18 +26,19 @@ public class OrderController {
 
    @PostMapping("/api/orders")
    public ResponseEntity<PlaceOrderResponse> placeOrder(@Validated @RequestBody PlaceOrderRequest request) {
-        Long orderId = orderFacade.placeOrder(request.accountId(), request.symbol(), request.quantity(), request.limitPrice());
-        return ResponseEntity.status(HttpStatus.CREATED).body(new PlaceOrderResponse(orderId));
+       long userId = UserContext.get();
+       Long orderId = orderFacade.placeOrder(userId, request.accountId(), request.symbol(), request.quantity(), request.limitPrice());
+       return ResponseEntity.status(HttpStatus.CREATED).body(new PlaceOrderResponse(orderId));
    }
 
    @PostMapping("/api/fills")
    public ResponseEntity<Void> applyFill(@Validated @RequestBody FillRequest request) {
-        orderFacade.applyFill(request.fillId(), request.orderId(), request.fillQuantity(), request.fillPrice());
-        return ResponseEntity.noContent().build();
+       orderFacade.applyFill(request.fillId(), request.orderId(), request.fillQuantity(), request.fillPrice());
+       return ResponseEntity.noContent().build();
    }
 
    @GetMapping("/api/orders/{orderId}")
    public ResponseEntity<OrderDetailResponse> getOrder(@PathVariable long orderId) {
-        return ResponseEntity.ok(orderService.getOrder(orderId));
+       return ResponseEntity.ok(orderService.getOrder(orderId));
    }
 }

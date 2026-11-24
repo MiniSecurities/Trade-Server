@@ -62,8 +62,8 @@ class OrderLockTest {
     @Test
     @DisplayName("접수 확인이 주문을 잠그고 있는 동안 체결 반영은 기다렸다가 반영되어 체결 수량이 사라지지 않는다")
     void fillWaitsWhileAcceptHoldsOrderLock() throws Exception {
-        Long accountId = accountRepository.save(new Account(new BigDecimal("10000000"))).getId();
-        Long orderId = orderFacade.placeOrder(accountId, "KAKAO", ORDER_QUANTITY, PRICE);
+        Long accountId = accountRepository.save(new Account(1L, new BigDecimal("10000000"))).getId();
+        Long orderId = orderFacade.placeOrder(1L, accountId, "KAKAO", ORDER_QUANTITY, PRICE);
         orderService.startSending(orderId);
 
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);

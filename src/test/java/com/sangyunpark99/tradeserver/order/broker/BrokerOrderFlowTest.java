@@ -50,7 +50,7 @@ class BrokerOrderFlowTest {
     }
 
     private Long createAccount(String balance) {
-        return accountRepository.save(new Account(new BigDecimal(balance))).getId();
+        return accountRepository.save(new Account(1L, new BigDecimal(balance))).getId();
     }
 
     private void awaitStatus(Long orderId, OrderStatus expected) throws InterruptedException {
@@ -70,7 +70,7 @@ class BrokerOrderFlowTest {
         given(brokerClient.sendOrder(any())).willReturn(BrokerResult.ACCEPTED);
         Long accountId = createAccount("10000");
 
-        Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+        Long orderId = orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
 
         verify(brokerClient, timeout(5_000)).sendOrder(argThat(r ->
                 r.orderId().equals(orderId)
@@ -85,7 +85,7 @@ class BrokerOrderFlowTest {
         given(brokerClient.sendOrder(any())).willReturn(BrokerResult.ACCEPTED);
         Long accountId = createAccount("10000");
 
-        Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+        Long orderId = orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
 
         awaitStatus(orderId, OrderStatus.ACCEPTED);
         assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("2000");
@@ -97,7 +97,7 @@ class BrokerOrderFlowTest {
         given(brokerClient.sendOrder(any())).willReturn(BrokerResult.UNKNOWN);
         Long accountId = createAccount("10000");
 
-        Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+        Long orderId = orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
 
         awaitStatus(orderId, OrderStatus.UNKNOWN);
         assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("2000");
@@ -109,7 +109,7 @@ class BrokerOrderFlowTest {
         given(brokerClient.sendOrder(any())).willReturn(BrokerResult.REJECTED);
         Long accountId = createAccount("10000");
 
-        Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+        Long orderId = orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
 
         awaitStatus(orderId, OrderStatus.REJECTED);
         assertThat(accountRepository.findById(accountId).orElseThrow().getReservedBalance()).isEqualByComparingTo("0");
@@ -120,7 +120,7 @@ class BrokerOrderFlowTest {
     void noCallWhenRolledBack() {
         Long accountId = createAccount("1999");
 
-        assertThatThrownBy(() -> orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200")))
+        assertThatThrownBy(() -> orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200")))
                 .isInstanceOf(TradeException.class);
 
         verify(brokerClient, after(500).never()).sendOrder(any());
@@ -132,7 +132,7 @@ class BrokerOrderFlowTest {
         given(brokerClient.sendOrder(any())).willReturn(BrokerResult.NOT_DELIVERED);
         Long accountId = createAccount("10000");
 
-        Long orderId = orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+        Long orderId = orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
 
         verify(brokerClient, timeout(5_000)).sendOrder(any());
         Thread.sleep(200);
@@ -151,7 +151,7 @@ class BrokerOrderFlowTest {
         });
         Long accountId = createAccount("10000");
 
-        orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+        orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
 
         verify(brokerClient, timeout(5_000)).sendOrder(any());
         assertThat(statusAtCall.get()).isEqualTo(OrderStatus.SENDING);

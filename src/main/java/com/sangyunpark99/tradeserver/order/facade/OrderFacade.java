@@ -15,8 +15,8 @@ public class OrderFacade {
 
     private final OrderService orderService;
 
-    public Long placeOrder(long accountId, String symbol, long quantity, BigDecimal limitPrice) {
-        return orderService.placeOrder(accountId, symbol, quantity, limitPrice);
+    public Long placeOrder(long userId, long accountId, String symbol, long quantity, BigDecimal limitPrice) {
+        return orderService.placeOrder(userId, accountId, symbol, quantity, limitPrice);
     }
 
     public void applyFill(String fillId, long orderId, long fillQuantity, BigDecimal fillPrice){

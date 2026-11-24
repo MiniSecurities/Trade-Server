@@ -46,8 +46,8 @@ class BrokerOrderSenderTest {
     }
 
     private Long placeOrder() {
-        Long accountId = accountRepository.save(new Account(new BigDecimal("10000"))).getId();
-        return orderService.placeOrder(accountId, "AAPL", 10, new BigDecimal("200"));
+        Long accountId = accountRepository.save(new Account(1L, new BigDecimal("10000"))).getId();
+        return orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
     }
 
     @Test
