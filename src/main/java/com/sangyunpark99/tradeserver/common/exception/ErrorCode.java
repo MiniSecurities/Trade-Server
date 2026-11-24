@@ -20,6 +20,7 @@ public enum ErrorCode {
     INVALID_EMAIL(HttpStatus.BAD_REQUEST, "이메일이 필요합니다."),
     INVALID_NAME(HttpStatus.BAD_REQUEST, "이름이 필요합니다."),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 필요합니다."),
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
 
     INVALID_FILL_QUANTITY(HttpStatus.INTERNAL_SERVER_ERROR, "체결 수량은 0보다 커야 합니다."),
     INVALID_FILL_PRICE(HttpStatus.INTERNAL_SERVER_ERROR, "체결가는 0보다 커야 합니다."),
