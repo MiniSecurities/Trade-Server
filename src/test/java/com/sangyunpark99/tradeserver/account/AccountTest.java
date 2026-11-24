@@ -14,6 +14,37 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AccountTest {
 
     @Nested
+    @DisplayName("입금")
+    class Deposit {
+
+        @Test
+        @DisplayName("입금하면 잔고와 주문 가능 금액이 입금액만큼 늘고 묶인 돈은 그대로다")
+        void depositIncreasesBalance() {
+            Account account = new Account(1L, new BigDecimal("10000"));
+            account.reserve(new BigDecimal("3000"));
+
+            account.deposit(new BigDecimal("5000"));
+
+            assertThat(account.getBalance()).isEqualByComparingTo("15000");
+            assertThat(account.getReservedBalance()).isEqualByComparingTo("3000");
+            assertThat(account.getAvailableBalance()).isEqualByComparingTo("12000");
+        }
+
+        @Test
+        @DisplayName("입금액이 null이거나 0 이하면 INVALID_AMOUNT")
+        void rejectInvalidAmount() {
+            Account account = new Account(1L, BigDecimal.ZERO);
+
+            for (BigDecimal amount : new BigDecimal[]{null, BigDecimal.ZERO, new BigDecimal("-1")}) {
+                assertThatThrownBy(() -> account.deposit(amount))
+                        .isInstanceOfSatisfying(TradeException.class,
+                                e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT));
+            }
+            assertThat(account.getBalance()).isEqualByComparingTo("0");
+        }
+    }
+
+    @Nested
     @DisplayName("계좌 주인")
     class Owner {
 
