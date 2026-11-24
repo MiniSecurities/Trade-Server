@@ -8,6 +8,7 @@ import com.sangyunpark99.tradeserver.common.exception.TradeException;
 import com.sangyunpark99.tradeserver.user.User;
 import com.sangyunpark99.tradeserver.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,9 +24,21 @@ public class AccountService {
     @Transactional
     public Long open(long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new TradeException(ErrorCode.UNAUTHORIZED));
-        Account account = new Account(user.getId(), BigDecimal.ZERO);
 
-        return accountRepository.save(account).getId();
+        if(accountRepository.existsAccountByUserId(userId)) {
+           throw new TradeException(ErrorCode.ACCOUNT_ALREADY_EXISTS);
+        }
+
+        Account account = new Account(user.getId(), BigDecimal.ZERO);
+        Account savedAccount;
+
+        try {
+            savedAccount = accountRepository.save(account);
+        } catch (DataIntegrityViolationException e) {
+            throw new TradeException(ErrorCode.ACCOUNT_ALREADY_EXISTS);
+        }
+
+        return savedAccount.getId();
     }
 
     @Transactional
