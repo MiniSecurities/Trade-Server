@@ -1,6 +1,6 @@
 package com.sangyunpark99.tradeserver.auth.service;
 
-import com.sangyunpark99.tradeserver.auth.JwtProvider;
+import com.sangyunpark99.tradeserver.auth.jwt.JwtProvider;
 import com.sangyunpark99.tradeserver.auth.controller.dto.LoginResponse;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
