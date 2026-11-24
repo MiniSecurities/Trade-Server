@@ -39,6 +39,14 @@ class AuthControllerTest {
                 .content(body));
     }
 
+    private ResultActions login(String email, String password) throws Exception {
+        return mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"email": "%s", "password": "%s"}
+                        """.formatted(email, password)));
+    }
+
     private String body(String email, String name, String password) {
         return """
                 {"email": "%s", "name": "%s", "password": "%s"}
@@ -92,5 +100,40 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value(containsString("name")));
+    }
+
+    @Test
+    @DisplayName("로그인하면 200과 accessToken, expiresIn을 돌려준다")
+    void loginSucceeds() throws Exception {
+        signUp(body("user@toss.im", "박상윤", "password123")).andExpect(status().isCreated());
+
+        login("user@toss.im", "password123")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value(notNullValue()))
+                .andExpect(jsonPath("$.expiresIn").value(1800));
+    }
+
+    @Test
+    @DisplayName("비밀번호가 틀리거나 가입하지 않은 이메일이면 둘 다 401과 같은 메시지")
+    void loginFailsWithSameResponse() throws Exception {
+        signUp(body("user@toss.im", "박상윤", "password123")).andExpect(status().isCreated());
+
+        login("user@toss.im", "wrong-password")
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("LOGIN_FAILED"))
+                .andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
+
+        login("nobody@toss.im", "password123")
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("LOGIN_FAILED"))
+                .andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("비밀번호가 비어 있으면 400")
+    void loginWithBlankPassword() throws Exception {
+        login("user@toss.im", " ")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
 }
