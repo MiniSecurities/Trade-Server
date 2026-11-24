@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.user.controller.dto;
+package com.sangyunpark99.tradeserver.auth.controller.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
