@@ -7,6 +7,7 @@ import com.sangyunpark99.tradeserver.common.exception.TradeException;
 import com.sangyunpark99.tradeserver.broker.OrderPlacedEvent;
 import com.sangyunpark99.tradeserver.fill.Fill;
 import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
+import com.sangyunpark99.tradeserver.notification.FillAppliedEvent;
 import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.controller.dto.OrderDetailResponse;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
@@ -70,6 +71,8 @@ public class OrderService {
         if(order.isCompleted() && order.getRemainingAmount().compareTo(BigDecimal.ZERO) > 0) {
             account.release(order.getRemainingAmount());
         }
+
+        applicationEventPublisher.publishEvent(new FillAppliedEvent(account.getUserId(), fillId, orderId, order.getSymbol(), fillQuantity, fillPrice, fill.getCreatedAt()));
     }
 
     @Transactional
