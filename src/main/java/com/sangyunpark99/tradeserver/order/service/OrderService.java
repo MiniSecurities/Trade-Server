@@ -106,8 +106,14 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public OrderDetailResponse getOrder(long orderId) {
+    public OrderDetailResponse getOrder(long userId, long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
+        Account account = accountRepository.findById(order.getAccountId()).orElseThrow(() -> new TradeException(ErrorCode.NOT_FOUND_ORDER));
+
+        if(!account.isOwnedBy(userId)) {
+            throw new TradeException(ErrorCode.NOT_FOUND_ORDER);
+        }
+
         List<Fill> fills = fillRepository.findByOrderIdOrderByIdAsc(orderId);
         return OrderDetailResponse.of(order, fills);
     }
