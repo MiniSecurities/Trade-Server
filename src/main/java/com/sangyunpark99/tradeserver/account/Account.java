@@ -56,6 +56,11 @@ public class Account {
         this.reservedBalance = this.reservedBalance.subtract(amount);
     }
 
+    public void deposit(BigDecimal amount) {
+        checkPositive(amount);
+        this.balance = this.balance.add(amount);
+    }
+
     public BigDecimal getAvailableBalance() {
         return this.balance.subtract(this.reservedBalance);
     }
