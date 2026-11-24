@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.auth.service;
 
+import com.sangyunpark99.tradeserver.auth.JwtProvider;
+import com.sangyunpark99.tradeserver.auth.controller.dto.LoginResponse;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
 import com.sangyunpark99.tradeserver.user.User;
@@ -38,6 +40,9 @@ class AuthServiceTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtProvider jwtProvider;
 
     @AfterEach
     void tearDown() {
@@ -121,5 +126,31 @@ class AuthServiceTest {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    @Test
+    @DisplayName("이메일과 비밀번호가 맞으면 사용자 ID가 담긴 토큰과 만료 시간(초)을 돌려준다")
+    void loginReturnsAccessToken() {
+        long userId = authService.signUp(EMAIL, NAME, PASSWORD);
+
+        LoginResponse response = authService.login(EMAIL, PASSWORD);
+
+        assertThat(response.accessToken()).isNotBlank();
+        assertThat(jwtProvider.getUserId(response.accessToken())).isEqualTo(userId);
+        assertThat(response.expiresIn()).isEqualTo(1800);
+    }
+
+    @Test
+    @DisplayName("비밀번호가 틀리면 LOGIN_FAILED")
+    void loginWithWrongPassword() {
+        authService.signUp(EMAIL, NAME, PASSWORD);
+
+        assertTradeException(() -> authService.login(EMAIL, "wrong-password"), ErrorCode.LOGIN_FAILED);
+    }
+
+    @Test
+    @DisplayName("가입하지 않은 이메일이어도 비밀번호가 틀렸을 때와 같은 LOGIN_FAILED")
+    void loginWithUnknownEmail() {
+        assertTradeException(() -> authService.login("nobody@toss.im", PASSWORD), ErrorCode.LOGIN_FAILED);
     }
 }
