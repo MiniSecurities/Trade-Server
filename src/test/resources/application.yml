@@ -13,3 +13,7 @@ broker:
     enabled: false
   resend:
     enabled: false
+
+jwt:
+  secret: 1QtTqI303LMaoF2jONc3puTK2v+ba05VUEkF3V8X998=
+  access-token-expiration: 30m

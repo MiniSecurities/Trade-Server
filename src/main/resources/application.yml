@@ -16,3 +16,7 @@ broker:
     enabled: true
   resend:
     enabled: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 30m
