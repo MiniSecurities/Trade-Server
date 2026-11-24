@@ -430,5 +430,16 @@ class OrderControllerTest {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("NOT_FOUND_ORDER"));
         }
+
+        @Test
+        @DisplayName("다른 사용자의 주문을 조회하면 없는 주문과 같은 404")
+        void othersOrderIsNotFound() throws Exception {
+            Long accountId = createAccount("10000");
+            Long orderId = placeOrderAndGetId(accountId, 10, 200);
+
+            mockMvc.perform(get("/api/orders/{orderId}", orderId).header(HttpHeaders.AUTHORIZATION, bearer(2L)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("NOT_FOUND_ORDER"));
+        }
     }
 }
