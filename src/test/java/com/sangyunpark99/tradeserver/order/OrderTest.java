@@ -200,7 +200,7 @@ class OrderTest {
         @Test
         @DisplayName("주문 금액을 묶고, 체결마다 반영하고, 끝나면 남은 금액을 풀면 묶인 돈이 0이 된다")
         void reserveFillRelease() {
-            Account account = new Account(new BigDecimal("10000"));
+            Account account = new Account(1L, new BigDecimal("10000"));
             Order order = order(10, "200");
 
             account.reserve(order.getOrderAmount());
@@ -224,7 +224,7 @@ class OrderTest {
         @Test
         @DisplayName("주문 두 개 중 끝난 주문의 남은 금액만 풀면 다른 주문의 묶인 돈은 남는다")
         void releaseOnlyCompletedOrder() {
-            Account account = new Account(new BigDecimal("10000"));
+            Account account = new Account(1L, new BigDecimal("10000"));
             Order a = order(10, "200");
             Order b = order(25, "200");
             account.reserve(a.getOrderAmount());
@@ -241,7 +241,7 @@ class OrderTest {
         @Test
         @DisplayName("남은 금액 대신 누적 체결 금액을 풀려고 하면 거절된다")
         void releasingFilledAmountIsRejected() {
-            Account account = new Account(new BigDecimal("10000"));
+            Account account = new Account(1L, new BigDecimal("10000"));
             Order order = order(10, "200");
             account.reserve(order.getOrderAmount());
             order.applyFill(10, new BigDecimal("198"));
