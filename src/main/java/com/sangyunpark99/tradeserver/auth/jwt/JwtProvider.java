@@ -1,4 +1,4 @@
-package com.sangyunpark99.tradeserver.auth;
+package com.sangyunpark99.tradeserver.auth.jwt;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;

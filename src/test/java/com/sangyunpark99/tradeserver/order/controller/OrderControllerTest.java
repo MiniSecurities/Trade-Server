@@ -3,6 +3,7 @@ package com.sangyunpark99.tradeserver.order.controller;
 import java.util.UUID;
 import com.sangyunpark99.tradeserver.fill.repository.FillRepository;
 import com.sangyunpark99.tradeserver.account.Account;
+import com.sangyunpark99.tradeserver.auth.jwt.JwtProvider;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -36,6 +38,9 @@ class OrderControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private JwtProvider jwtProvider;
+
+    @Autowired
     private AccountRepository accountRepository;
 
     @Autowired
@@ -55,8 +60,13 @@ class OrderControllerTest {
         return accountRepository.save(new Account(new BigDecimal(balance))).getId();
     }
 
+    private String bearer() {
+        return "Bearer " + jwtProvider.createAccessToken(1L);
+    }
+
     private ResultActions placeOrder(String body) throws Exception {
         return mockMvc.perform(post("/api/orders")
+                .header(HttpHeaders.AUTHORIZATION, bearer())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
     }
@@ -201,14 +211,14 @@ class OrderControllerTest {
         @Test
         @DisplayName("지원하지 않는 메서드는 405")
         void methodNotAllowed() throws Exception {
-            mockMvc.perform(get("/api/orders"))
+            mockMvc.perform(get("/api/orders").header(HttpHeaders.AUTHORIZATION, bearer()))
                     .andExpect(status().isMethodNotAllowed());
         }
 
         @Test
         @DisplayName("없는 경로는 404")
         void unknownPath() throws Exception {
-            mockMvc.perform(get("/api/unknown"))
+            mockMvc.perform(get("/api/unknown").header(HttpHeaders.AUTHORIZATION, bearer()))
                     .andExpect(status().isNotFound());
         }
     }
@@ -356,7 +366,7 @@ class OrderControllerTest {
             applyFill(fillBody("fill-1", orderId, 3, "197.42")).andExpect(status().isNoContent());
             applyFill(fillBody("fill-2", orderId, 2, "199")).andExpect(status().isNoContent());
 
-            mockMvc.perform(get("/api/orders/{orderId}", orderId))
+            mockMvc.perform(get("/api/orders/{orderId}", orderId).header(HttpHeaders.AUTHORIZATION, bearer()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.orderId").value(orderId))
                     .andExpect(jsonPath("$.symbol").value("AAPL"))
@@ -377,7 +387,7 @@ class OrderControllerTest {
             Long accountId = createAccount("10000");
             Long orderId = placeOrderAndGetId(accountId, 10, 200);
 
-            mockMvc.perform(get("/api/orders/{orderId}", orderId))
+            mockMvc.perform(get("/api/orders/{orderId}", orderId).header(HttpHeaders.AUTHORIZATION, bearer()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.filledQuantity").value(0))
                     .andExpect(jsonPath("$.averagePrice").value(nullValue()))
@@ -387,7 +397,7 @@ class OrderControllerTest {
         @Test
         @DisplayName("없는 주문이면 404")
         void notFound() throws Exception {
-            mockMvc.perform(get("/api/orders/{orderId}", 999_999))
+            mockMvc.perform(get("/api/orders/{orderId}", 999_999).header(HttpHeaders.AUTHORIZATION, bearer()))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("NOT_FOUND_ORDER"));
         }
