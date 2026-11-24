@@ -17,6 +17,10 @@ public enum ErrorCode {
     INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "주문 수량은 0보다 커야 합니다."),
     INVALID_LIMIT_PRICE(HttpStatus.BAD_REQUEST, "지정가는 0보다 커야 합니다."),
 
+    INVALID_EMAIL(HttpStatus.BAD_REQUEST, "이메일이 필요합니다."),
+    INVALID_NAME(HttpStatus.BAD_REQUEST, "이름이 필요합니다."),
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 필요합니다."),
+
     INVALID_FILL_QUANTITY(HttpStatus.INTERNAL_SERVER_ERROR, "체결 수량은 0보다 커야 합니다."),
     INVALID_FILL_PRICE(HttpStatus.INTERNAL_SERVER_ERROR, "체결가는 0보다 커야 합니다."),
     FILL_PRICE_EXCEEDS_LIMIT(HttpStatus.INTERNAL_SERVER_ERROR, "체결가가 지정가보다 높습니다."),
