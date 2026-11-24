@@ -60,9 +60,10 @@ class ApplyFillConcurrencyTest {
         long startedAt = System.nanoTime();
         try {
             for (int round = 0; round < ROUND_COUNT; round++) {
-                Long accountId = accountRepository.save(new Account(1L, INITIAL_BALANCE)).getId();
-                Long kakaoOrderId = orderFacade.placeOrder(1L, accountId, "KAKAO", KAKAO_QUANTITY, PRICE);
-                Long samsungOrderId = orderFacade.placeOrder(1L, accountId, "SAMSUNG", SAMSUNG_QUANTITY, PRICE);
+                long userId = round + 1;
+                Long accountId = accountRepository.save(new Account(userId, INITIAL_BALANCE)).getId();
+                Long kakaoOrderId = orderFacade.placeOrder(userId, accountId, "KAKAO", KAKAO_QUANTITY, PRICE);
+                Long samsungOrderId = orderFacade.placeOrder(userId, accountId, "SAMSUNG", SAMSUNG_QUANTITY, PRICE);
 
                 CountDownLatch ready = new CountDownLatch(2);
                 CountDownLatch start = new CountDownLatch(1);

@@ -145,4 +145,18 @@ class AccountControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
+
+    @Test
+    @DisplayName("이미 계좌가 있는 사용자가 다시 열면 409")
+    void rejectSecondAccount() throws Exception {
+        long userId = createUser();
+        mockMvc.perform(post("/api/accounts").header(HttpHeaders.AUTHORIZATION, bearer(userId)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/accounts").header(HttpHeaders.AUTHORIZATION, bearer(userId)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_ALREADY_EXISTS"));
+
+        assertThat(accountRepository.count()).isEqualTo(1);
+    }
 }
