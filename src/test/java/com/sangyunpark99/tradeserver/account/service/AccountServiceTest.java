@@ -14,6 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,16 +62,57 @@ class AccountServiceTest {
     }
 
     @Test
-    @DisplayName("한 사용자가 계좌를 여러 개 열 수 있다")
-    void openMultipleAccounts() {
+    @DisplayName("이미 계좌가 있는 사용자가 다시 열면 ACCOUNT_ALREADY_EXISTS이고 계좌는 하나뿐이다")
+    void rejectSecondAccount() {
         long userId = createUser("user@toss.im");
+        accountService.open(userId);
 
-        Long first = accountService.open(userId);
-        Long second = accountService.open(userId);
+        assertThatThrownBy(() -> accountService.open(userId))
+                .isInstanceOfSatisfying(TradeException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.ACCOUNT_ALREADY_EXISTS));
+        assertThat(accountRepository.count()).isEqualTo(1);
+    }
 
-        assertThat(first).isNotEqualTo(second);
-        assertThat(accountRepository.findById(first).orElseThrow().isOwnedBy(userId)).isTrue();
-        assertThat(accountRepository.findById(second).orElseThrow().isOwnedBy(userId)).isTrue();
+    @Test
+    @DisplayName("같은 사용자가 동시에 계좌를 열어도 하나만 열리고 나머지는 ACCOUNT_ALREADY_EXISTS")
+    void concurrentOpen() throws Exception {
+        long userId = createUser("user@toss.im");
+        int threadCount = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<Long>> results = new ArrayList<>();
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                results.add(pool.submit(() -> {
+                    ready.countDown();
+                    start.await();
+                    return accountService.open(userId);
+                }));
+            }
+            ready.await();
+            start.countDown();
+
+            int opened = 0;
+            int rejected = 0;
+            for (Future<Long> result : results) {
+                try {
+                    result.get(10, TimeUnit.SECONDS);
+                    opened++;
+                } catch (ExecutionException e) {
+                    assertThat(e.getCause())
+                            .isInstanceOfSatisfying(TradeException.class,
+                                    t -> assertThat(t.getErrorCode()).isEqualTo(ErrorCode.ACCOUNT_ALREADY_EXISTS));
+                    rejected++;
+                }
+            }
+
+            assertThat(opened).isEqualTo(1);
+            assertThat(rejected).isEqualTo(threadCount - 1);
+            assertThat(accountRepository.count()).isEqualTo(1);
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test
