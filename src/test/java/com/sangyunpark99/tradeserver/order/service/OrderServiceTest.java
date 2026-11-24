@@ -520,7 +520,7 @@ class OrderServiceTest {
             orderService.applyFill("fill-1", orderId, 3, new BigDecimal("198"));
             orderService.applyFill("fill-2", orderId, 2, new BigDecimal("200"));
 
-            OrderDetailResponse response = orderService.getOrder(orderId);
+            OrderDetailResponse response = orderService.getOrder(1L, orderId);
 
             assertThat(response.orderId()).isEqualTo(orderId);
             assertThat(response.status()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
@@ -539,14 +539,23 @@ class OrderServiceTest {
             orderService.applyFill("fill-a", orderA, 3, new BigDecimal("198"));
             orderService.applyFill("fill-b", orderB, 2, new BigDecimal("199"));
 
-            assertThat(orderService.getOrder(orderA).fills()).extracting("fillId").containsExactly("fill-a");
-            assertThat(orderService.getOrder(orderB).fills()).extracting("fillId").containsExactly("fill-b");
+            assertThat(orderService.getOrder(1L, orderA).fills()).extracting("fillId").containsExactly("fill-a");
+            assertThat(orderService.getOrder(1L, orderB).fills()).extracting("fillId").containsExactly("fill-b");
         }
 
         @Test
         @DisplayName("없는 주문이면 NOT_FOUND_ORDER")
         void notFound() {
-            assertTradeException(() -> orderService.getOrder(999_999L), ErrorCode.NOT_FOUND_ORDER);
+            assertTradeException(() -> orderService.getOrder(1L, 999_999L), ErrorCode.NOT_FOUND_ORDER);
+        }
+
+        @Test
+        @DisplayName("다른 사용자의 주문이면 없는 주문과 같은 NOT_FOUND_ORDER")
+        void othersOrderIsNotFound() {
+            Long accountId = createAccount("10000");
+            Long orderId = orderService.placeOrder(1L, accountId, "AAPL", 10, new BigDecimal("200"));
+
+            assertTradeException(() -> orderService.getOrder(2L, orderId), ErrorCode.NOT_FOUND_ORDER);
         }
     }
 }
