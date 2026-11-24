@@ -1,6 +1,7 @@
 package com.sangyunpark99.tradeserver.account.service;
 
 import com.sangyunpark99.tradeserver.account.Account;
+import com.sangyunpark99.tradeserver.account.controller.dto.DepositAccountResponse;
 import com.sangyunpark99.tradeserver.account.repository.AccountRepository;
 import com.sangyunpark99.tradeserver.common.exception.ErrorCode;
 import com.sangyunpark99.tradeserver.common.exception.TradeException;
@@ -11,6 +12,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -71,5 +74,36 @@ class AccountServiceTest {
                         e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
 
         assertThat(accountRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("입금하면 계좌에 반영되고 입금 후 잔고와 주문 가능 금액을 돌려준다")
+    void deposit() {
+        long userId = createUser("user@toss.im");
+        Long accountId = accountService.open(userId);
+
+        DepositAccountResponse response = accountService.deposit(userId, new BigDecimal("1000000"));
+
+        assertThat(response.balance()).isEqualByComparingTo("1000000");
+        assertThat(response.availableBalance()).isEqualByComparingTo("1000000");
+        assertThat(accountRepository.findById(accountId).orElseThrow().getBalance()).isEqualByComparingTo("1000000");
+    }
+
+    @Test
+    @DisplayName("계좌가 없는 사용자가 입금하면 NOT_FOUND_ACCOUNT")
+    void depositWithoutAccount() {
+        long userId = createUser("user@toss.im");
+
+        assertThatThrownBy(() -> accountService.deposit(userId, new BigDecimal("1000")))
+                .isInstanceOfSatisfying(TradeException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND_ACCOUNT));
+    }
+
+    @Test
+    @DisplayName("토큰의 사용자가 존재하지 않으면 입금도 UNAUTHORIZED")
+    void depositUnknownUser() {
+        assertThatThrownBy(() -> accountService.deposit(999_999L, new BigDecimal("1000")))
+                .isInstanceOfSatisfying(TradeException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 }
