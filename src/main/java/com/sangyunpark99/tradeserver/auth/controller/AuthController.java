@@ -1,5 +1,7 @@
 package com.sangyunpark99.tradeserver.auth.controller;
 
+import com.sangyunpark99.tradeserver.auth.controller.dto.LoginRequest;
+import com.sangyunpark99.tradeserver.auth.controller.dto.LoginResponse;
 import com.sangyunpark99.tradeserver.auth.controller.dto.SignUpRequest;
 import com.sangyunpark99.tradeserver.auth.controller.dto.SignUpResponse;
 import com.sangyunpark99.tradeserver.auth.service.AuthService;
@@ -23,5 +25,10 @@ public class AuthController {
     public ResponseEntity<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
         Long userId = authService.signUp(request.email(), request.name(), request.password());
         return ResponseEntity.status(HttpStatus.CREATED).body(new SignUpResponse(userId));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.status(HttpStatus.OK).body(authService.login(request.email(), request.password()));
     }
 }
