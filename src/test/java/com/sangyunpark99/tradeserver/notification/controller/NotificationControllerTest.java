@@ -51,6 +51,14 @@ class NotificationControllerTest {
     }
 
     @Test
+    @DisplayName("connected 이벤트에 id가 있어 재연결 때 Last-Event-ID로 돌아온다")
+    void connectedHasId() throws Exception {
+        String body = subscribe(get("/api/notifications/subscribe"));
+
+        assertThat(body).contains("id:connected");
+    }
+
+    @Test
     @DisplayName("Last-Event-ID가 있으면 connected 다음에 데이터가 있는 resync를 보낸다")
     void resubscribeSendsResync() throws Exception {
         String body = subscribe(get("/api/notifications/subscribe").header("Last-Event-ID", "fill-1"));
