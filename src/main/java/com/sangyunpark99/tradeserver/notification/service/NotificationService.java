@@ -31,7 +31,7 @@ public class NotificationService {
         sseEmitter.onError(e -> emitterRepository.remove(userId, sseEmitter));
 
         try {
-            sseEmitter.send(SseEmitter.event().name("connected").data("연결됨"));
+            sseEmitter.send(SseEmitter.event().name("connected").data("연결됨").id("connected"));
             if(StringUtils.hasText(lastEventId)) {
                 sseEmitter.send(SseEmitter.event().name("resync").data("체결을 다시 조회하세요"));
             }
