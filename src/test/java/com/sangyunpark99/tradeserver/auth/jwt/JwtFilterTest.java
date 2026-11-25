@@ -154,11 +154,12 @@ class JwtFilterTest {
     class ExcludedPaths {
 
         @Test
-        @DisplayName("/api/auth/로 시작하는 경로와 /api/fills는 필터를 건너뛴다")
+        @DisplayName("/api/auth/로 시작하는 경로, /api/fills, /actuator/health는 필터를 건너뛴다")
         void excluded() throws Exception {
             assertThat(jwtFilter.shouldNotFilter(request("/api/auth/signup", null))).isTrue();
             assertThat(jwtFilter.shouldNotFilter(request("/api/auth/login", null))).isTrue();
             assertThat(jwtFilter.shouldNotFilter(request("/api/fills", null))).isTrue();
+            assertThat(jwtFilter.shouldNotFilter(request("/actuator/health", null))).isTrue();
         }
 
         @Test
@@ -168,6 +169,8 @@ class JwtFilterTest {
             assertThat(jwtFilter.shouldNotFilter(request("/api/orders/1", null))).isFalse();
             assertThat(jwtFilter.shouldNotFilter(request("/api/authority", null))).isFalse();
             assertThat(jwtFilter.shouldNotFilter(request("/api/fills-admin", null))).isFalse();
+            assertThat(jwtFilter.shouldNotFilter(request("/actuator/health/db", null))).isFalse();
+            assertThat(jwtFilter.shouldNotFilter(request("/actuator/env", null))).isFalse();
         }
     }
 }

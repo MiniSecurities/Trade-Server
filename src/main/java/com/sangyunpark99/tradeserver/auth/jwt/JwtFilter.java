@@ -62,6 +62,7 @@ public class JwtFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String uri = request.getRequestURI();
 
+        if(uri.equals("/actuator/health")) return true;
         if(uri.startsWith("/api/auth/")) return true;
         return uri.equals("/api/fills");
     }
