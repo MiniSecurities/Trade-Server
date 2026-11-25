@@ -6,6 +6,7 @@ import com.sangyunpark99.tradeserver.notification.repository.EmitterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class NotificationService {
 
     private final EmitterRepository emitterRepository;
 
-    public SseEmitter subscribe(long userId) {
+    public SseEmitter subscribe(long userId, String lastEventId) {
         SseEmitter sseEmitter = new SseEmitter(TIMEOUT_MILLIS);
 
         emitterRepository.add(userId, sseEmitter);
@@ -30,7 +31,10 @@ public class NotificationService {
         sseEmitter.onError(e -> emitterRepository.remove(userId, sseEmitter));
 
         try {
-            sseEmitter.send(SseEmitter.event().name("connected").data("연결됨"));
+            sseEmitter.send(SseEmitter.event().name("connected").data("연결됨").id("connected"));
+            if(StringUtils.hasText(lastEventId)) {
+                sseEmitter.send(SseEmitter.event().name("resync").data("체결을 다시 조회하세요"));
+            }
         } catch (IOException e) {
             emitterRepository.remove(userId, sseEmitter);
         }

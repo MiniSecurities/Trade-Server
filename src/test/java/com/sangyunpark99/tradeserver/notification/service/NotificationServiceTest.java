@@ -28,7 +28,15 @@ class NotificationServiceTest {
     @Test
     @DisplayName("구독하면 사용자의 연결로 저장된다")
     void subscribeStoresEmitter() {
-        SseEmitter emitter = notificationService.subscribe(1L);
+        SseEmitter emitter = notificationService.subscribe(1L, null);
+
+        assertThat(emitterRepository.findAll(1L)).containsExactly(emitter);
+    }
+
+    @Test
+    @DisplayName("재구독해도 사용자의 연결로 저장된다")
+    void resubscribeStoresEmitter() {
+        SseEmitter emitter = notificationService.subscribe(1L, "fill-1");
 
         assertThat(emitterRepository.findAll(1L)).containsExactly(emitter);
     }
