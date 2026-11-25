@@ -1,5 +1,6 @@
 package com.sangyunpark99.tradeserver.scheduler;
 
+import com.sangyunpark99.tradeserver.broker.BrokerClient;
 import com.sangyunpark99.tradeserver.broker.BrokerOrderSender;
 import com.sangyunpark99.tradeserver.order.entity.Order;
 import com.sangyunpark99.tradeserver.order.entity.OrderStatus;
@@ -16,9 +17,12 @@ public class PendingOrderResendScheduler {
 
     private final OrderRepository orderRepository;
     private final BrokerOrderSender brokerOrderSender;
+    private final BrokerClient brokerClient;
 
     @Scheduled(fixedDelay = 10_000)
     public void resendPendingOrders() {
+        if(!brokerClient.isHealthy()) return;
+
         List<Order> orders = orderRepository.findTop50ByOrderStatusOrderById(OrderStatus.PENDING);
 
         for(int i = 0; i < orders.size(); i++) {
