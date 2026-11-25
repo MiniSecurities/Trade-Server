@@ -26,6 +26,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class BrokerClientTest {
 
@@ -121,6 +122,37 @@ class BrokerClientTest {
                 .andRespond(withStatus(HttpStatus.ACCEPTED));
 
         assertThat(client.sendOrder(request)).isEqualTo(BrokerResult.ACCEPTED);
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("헬스 체크가 200이면 true")
+    void healthy() {
+        server.expect(ExpectedCount.once(), requestTo("http://broker/actuator/health"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess());
+
+        assertThat(client.isHealthy()).isTrue();
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("헬스 체크가 503(DOWN)이면 재시도 없이 false")
+    void unhealthyWithoutRetry() {
+        server.expect(ExpectedCount.once(), requestTo("http://broker/actuator/health"))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        assertThat(client.isHealthy()).isFalse();
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("헬스 체크 연결 실패도 재시도 없이 false")
+    void connectFailureWithoutRetry() {
+        server.expect(ExpectedCount.once(), requestTo("http://broker/actuator/health"))
+                .andRespond(withException(new ConnectException("연결 거부")));
+
+        assertThat(client.isHealthy()).isFalse();
         server.verify();
     }
 }
