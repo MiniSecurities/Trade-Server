@@ -9,6 +9,7 @@ import com.sangyunpark99.tradeserver.order.entity.OrderStatus;
 import com.sangyunpark99.tradeserver.order.repository.OrderRepository;
 import com.sangyunpark99.tradeserver.order.service.OrderService;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -45,6 +46,11 @@ class PendingOrderResendSchedulerTest {
 
     @MockitoBean
     private BrokerClient brokerClient;
+
+    @BeforeEach
+    void setUp() {
+        given(brokerClient.isHealthy()).willReturn(true);
+    }
 
     @AfterEach
     void tearDown() {
@@ -162,5 +168,17 @@ class PendingOrderResendSchedulerTest {
         scheduler.resendPendingOrders();
 
         assertThat(statusOf(second)).isEqualTo(OrderStatus.ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("브로커 서버가 죽어 있으면 PENDING 주문을 보내지 않고 그대로 둔다")
+    void skipsWhenBrokerIsDown() {
+        given(brokerClient.isHealthy()).willReturn(false);
+        Long orderId = placeOrder(createAccount());
+
+        scheduler.resendPendingOrders();
+
+        verify(brokerClient, never()).sendOrder(any());
+        assertThat(statusOf(orderId)).isEqualTo(OrderStatus.PENDING);
     }
 }
