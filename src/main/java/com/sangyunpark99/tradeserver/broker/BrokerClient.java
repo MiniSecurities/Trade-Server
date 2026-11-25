@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.net.ConnectException;
 import java.net.http.HttpConnectTimeoutException;
@@ -49,6 +50,19 @@ public class BrokerClient {
 
             log.error("브로커 서버 주문 결과 모름 orderId={}", request.orderId(), cause);
             return BrokerResult.UNKNOWN;
+        }
+    }
+
+    public boolean isHealthy() {
+        try {
+            brokerRestClient.get()
+                    .uri("/actuator/health")
+                    .retrieve()
+                    .toBodilessEntity();
+            return true;
+        } catch (RestClientException e) {
+            log.warn("브로커 서버 헬스 체크 실패: {}", e.getMessage());
+            return false;
         }
     }
 
