@@ -34,6 +34,20 @@ public class BrokerConfig {
     }
 
     @Bean
+    public RestClient quoteStreamRestClient(RestClient.Builder builder, @Value("${broker.base-url}") String baseUrl) {
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(1))
+                .build();
+
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+
+        return builder
+                .baseUrl(baseUrl)
+                .requestFactory(requestFactory)
+                .build();
+    }
+
+    @Bean
     public TaskExecutor brokerExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(8);
