@@ -1,6 +1,7 @@
 package com.sangyunpark99.tradeserver.quote.client;
 
 import com.sangyunpark99.tradeserver.quote.dto.Quote;
+import com.sangyunpark99.tradeserver.quote.service.QuotePublisher;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class QuoteStreamClient {
 
     private final RestClient quoteStreamRestClient;
     private final JsonMapper jsonMapper;
+    private final QuotePublisher quotePublisher;
 
     private volatile boolean running = true;
     private Thread thread;
@@ -125,6 +127,7 @@ public class QuoteStreamClient {
         try {
             Quote quote = jsonMapper.readValue(json, Quote.class);
             log.debug("[시세] {}", quote);
+            quotePublisher.publish(quote);
         } catch (JacksonException e) {
             log.warn("시세 파싱 실패 data={}", json, e);
         }
