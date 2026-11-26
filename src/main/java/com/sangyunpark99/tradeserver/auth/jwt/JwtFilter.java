@@ -63,6 +63,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
 
         if(uri.equals("/actuator/health")) return true;
+        if(uri.equals("/ws")) return true;
+        if(uri.equals("/quote.html")) return true;
         if(uri.startsWith("/api/auth/")) return true;
         return uri.equals("/api/fills");
     }
