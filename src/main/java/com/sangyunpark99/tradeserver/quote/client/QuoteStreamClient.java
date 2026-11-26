@@ -124,7 +124,7 @@ public class QuoteStreamClient {
     private void handleQuote(String json) {
         try {
             Quote quote = jsonMapper.readValue(json, Quote.class);
-            log.info("[시세] {}", quote);
+            log.debug("[시세] {}", quote);
         } catch (JacksonException e) {
             log.warn("시세 파싱 실패 data={}", json, e);
         }
