@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시세 확인</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 24px; }
+  #price { font-size: 48px; font-weight: 700; }
+  .up { color: #e03131; } .down { color: #1c7ed6; }
+  table { border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+  td, th { padding: 4px 12px; border-bottom: 1px solid #ddd; text-align: right; }
+</style>
+</head>
+<body>
+<div>종목 <input id="symbol" value="035720" size="8"> <button id="subscribe">구독</button> <span id="status">연결 중</span></div>
+<div id="price">-</div>
+<div>sequence <span id="sequence">-</span> · 빠진 개수 <span id="missed">0</span> · 지연 <span id="delay">-</span>ms</div>
+<table><thead><tr><th>sequence</th><th>가격</th><th>시세 시각</th></tr></thead><tbody id="rows"></tbody></table>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let subscription = null;
+  let lastSequence = null;
+  let lastPrice = null;
+  let missed = 0;
+
+  const client = new StompJs.Client({
+    brokerURL: `ws://${location.host}/ws`,
+    reconnectDelay: 1000,
+    onConnect: () => { $('status').textContent = '연결됨'; subscribe(); },
+    onWebSocketClose: () => { $('status').textContent = '끊김, 재연결 중'; }
+  });
+
+  function subscribe() {
+    if (subscription) subscription.unsubscribe();
+    lastSequence = null; lastPrice = null; missed = 0;
+    $('rows').innerHTML = '';
+    subscription = client.subscribe(`/topic/quotes/${$('symbol').value}`, (message) => render(JSON.parse(message.body)));
+  }
+
+  function render(quote) {
+    if (lastSequence !== null && quote.sequence > lastSequence + 1) missed += quote.sequence - lastSequence - 1;
+    lastSequence = quote.sequence;
+    const price = Number(quote.price);
+    $('price').textContent = price.toLocaleString() + '원';
+    $('price').className = lastPrice === null || price === lastPrice ? '' : price > lastPrice ? 'up' : 'down';
+    lastPrice = price;
+    $('sequence').textContent = quote.sequence;
+    $('missed').textContent = missed;
+    $('delay').textContent = Date.now() - new Date(quote.quotedAt).getTime();
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${quote.sequence}</td><td>${price.toLocaleString()}</td><td>${quote.quotedAt}</td>`;
+    $('rows').prepend(row);
+    while ($('rows').children.length > 20) $('rows').lastChild.remove();
+  }
+
+  $('subscribe').onclick = () => client.connected && subscribe();
+  client.activate();
+</script>
+</body>
+</html>
